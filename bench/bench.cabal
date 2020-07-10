@@ -1,0 +1,68 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 4bbef4402da7c321e61bf6868c0b93b92c9540c08a78fd58478fc26f1bfde9b0
+
+name:           bench
+version:        0.1.0.0
+build-type:     Simple
+
+executable bench
+  main-is: bench.hs
+  other-modules:
+      Paths_bench
+  ghc-options: -Wall -optc-O2 -O2 -threaded -rtsopts -with-rtsopts=-N
+  cc-options: -Wall -O2
+  extra-libraries:
+      archive
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , statistics
+    , streamly
+    , streamly-archive
+    , text
+    , turtle
+    , vector
+  default-language: Haskell2010
+
+executable bench-archive-plain
+  main-is: bench-archive-plain.hs
+  other-modules:
+      Paths_bench
+  ghc-options: -Wall -optc-O2 -O2 -threaded -rtsopts -with-rtsopts=-N
+  cc-options: -Wall -O2
+  extra-libraries:
+      archive
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , statistics
+    , streamly
+    , streamly-archive
+    , text
+    , turtle
+    , vector
+  default-language: Haskell2010
+
+executable bench-archive-streamly
+  main-is: bench-archive-streamly.hs
+  other-modules:
+      Paths_bench
+  ghc-options: -Wall -optc-O2 -O2 -threaded -rtsopts -with-rtsopts=-N
+  cc-options: -Wall -O2
+  extra-libraries:
+      archive
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , statistics
+    , streamly
+    , streamly-archive
+    , text
+    , turtle
+    , vector
+  default-language: Haskell2010

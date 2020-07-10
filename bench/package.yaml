@@ -1,0 +1,37 @@
+name: bench
+version: 0.1.0.0
+
+extra-libraries:
+- archive
+
+cc-options:
+- -Wall
+- -O2
+
+ghc-options:
+- -Wall
+- -optc-O2
+- -O2
+- -threaded
+- -rtsopts
+- -with-rtsopts=-N
+
+dependencies:
+- base >= 4.7 && < 5
+- bytestring
+- statistics
+- streamly
+- streamly-archive
+- text
+- turtle
+- vector
+
+executables:
+  bench:
+    main: bench.hs
+
+  bench-archive-streamly:
+    main: bench-archive-streamly.hs
+
+  bench-archive-plain:
+    main: bench-archive-plain.hs

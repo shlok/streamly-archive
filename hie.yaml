@@ -1,0 +1,6 @@
+cradle:
+  stack:
+    - path: ./test
+      component: "streamly-archive:test:streamly-archive-test"
+    - path: ./src
+      component: "streamly-archive:lib"

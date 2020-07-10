@@ -1,0 +1,8 @@
+resolver: lts-16.2
+packages:
+- .
+- .. # streamly-archive
+extra-include-dirs:
+- /usr/local/opt/libarchive/include
+extra-lib-dirs:
+- /usr/local/opt/libarchive/lib
