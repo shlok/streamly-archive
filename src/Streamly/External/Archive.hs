@@ -10,7 +10,7 @@ module Streamly.External.Archive
     readArchive,
 
     -- ** Header
-    Header (..),
+    Header,
     FileType (..),
     headerFileType,
     headerPathName,
