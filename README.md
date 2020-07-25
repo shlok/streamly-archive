@@ -1,5 +1,8 @@
 # streamly-archive
 
+[![Hackage](https://img.shields.io/hackage/v/streamly-archive.svg?style=flat)](https://hackage.haskell.org/package/streamly-archive)
+[![Build Status](https://travis-ci.org/shlok/streamly-archive.svg?branch=master)](https://travis-ci.org/shlok/streamly-archive)
+
 Stream data from archives (tar, tar.gz, zip, or any other format [supported by libarchive](https://github.com/libarchive/libarchive/wiki/LibarchiveFormats)) using the Haskell [streamly](https://hackage.haskell.org/package/streamly) library.
 
 ## Requirements
