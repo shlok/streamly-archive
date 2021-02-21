@@ -135,10 +135,10 @@ testSparse = testCase "sparse" $ do
     let zero = B.replicate tenMb 0
     let asdf = "asdf"
 
-    assertBool "unexpected bytestring (1)" $ (snd $ archive !! 0) == zero
-    assertBool "unexpected bytestring (2)" $ (snd $ archive !! 1) == zero `B.append` zero
-    assertBool "unexpected bytestring (3)" $ (snd $ archive !! 2) == zero `B.append` asdf
-    assertBool "unexpected bytestring (4)" $ (snd $ archive !! 3) == asdf `B.append` zero
+    assertBool "unexpected bytestring (1)" $ snd (head archive) == zero
+    assertBool "unexpected bytestring (2)" $ snd (archive !! 1) == zero `B.append` zero
+    assertBool "unexpected bytestring (3)" $ snd (archive !! 2) == zero `B.append` asdf
+    assertBool "unexpected bytestring (4)" $ snd (archive !! 3) == asdf `B.append` zero
 
 --------------------------------------------------------------------------------
 
