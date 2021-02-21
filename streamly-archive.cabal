@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5da7b897c9948b1a21fdedb2baab24ef18e4505b4cc95d4a80edb7ab6e4254b7
+-- hash: 4b509e0278c8cbc646eb597d841608e9441c7fb5cb95526f6e89409da7e54cdc
 
 name:           streamly-archive
 version:        0.0.1
@@ -58,14 +58,14 @@ test-suite streamly-archive-test
   extra-libraries:
       archive
   build-depends:
-      QuickCheck >=2.13.2 && <2.14
+      QuickCheck >=2.13.2 && <2.15
     , base >=4.7 && <5
     , bytestring >=0.10 && <0.11
     , cryptonite >=0.26
     , directory >=1.3.6.0 && <1.4
     , filepath >=1.4.2.1 && <1.5
     , streamly >=0.7 && <0.8
-    , streamly-archive ==0.0.1
+    , streamly-archive
     , tar >=0.5.1.1 && <0.6
     , tasty >=1.2.3 && <1.3
     , tasty-hunit >=0.10.0.2 && <0.11
