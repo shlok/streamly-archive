@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 04cf416f2321711262c8c98463f4bd0093bb935cdc16f77c15bccf8cf85e9b52
+-- hash: d1bdeda7161e474d2faae54074a27a35ecd88370e604246d11b83a5f54a66471
 
 name:           streamly-archive
-version:        0.0.1
+version:        0.0.2
 synopsis:       Stream data from archives using the streamly library.
 description:    Please see the README on GitHub at <https://github.com/shlok/streamly-archive#readme>
 category:       Archive, Codec, Streaming, Streamly
