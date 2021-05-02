@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9ed3c3ac2878579ba257a67c7ff5b90fccb05aa2cca886edc9205ae1e0fa5995
+-- hash: 04cf416f2321711262c8c98463f4bd0093bb935cdc16f77c15bccf8cf85e9b52
 
 name:           streamly-archive
 version:        0.0.1
@@ -67,7 +67,7 @@ test-suite streamly-archive-test
     , streamly ==0.7.*
     , streamly-archive
     , tar >=0.5.1.1 && <0.6
-    , tasty >=1.2.3 && <1.3
+    , tasty >=1.2.3 && <1.5
     , tasty-hunit >=0.10.0.2 && <0.11
     , tasty-quickcheck >=0.10.1.1 && <0.11
     , temporary ==1.3.*
