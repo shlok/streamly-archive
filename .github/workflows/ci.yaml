@@ -13,10 +13,10 @@ jobs:
     strategy:
       matrix:
         cabal: ["3.4"]
-        ghc: ["8.8.4", "8.10.4", "9.0.1"]
+        ghc: ["8.8.4", "8.10.4"]
       fail-fast: false
     env:
-      CONFIG: "--enable-tests --enable-benchmarks --flags=dev"
+      CONFIG: "--enable-tests --enable-benchmarks"
     steps:
       - uses: actions/checkout@v2.3.4
       - uses: haskell/actions/setup@v1.2
