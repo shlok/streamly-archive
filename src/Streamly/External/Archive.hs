@@ -26,12 +26,12 @@ import Data.Int (Int64)
 import Data.Void (Void)
 import Foreign (Ptr, free, malloc)
 import Foreign.C.Types (CChar, CSize)
+import Streamly.Internal.Data.IOFinalizer (newIOFinalizer, runIOFinalizer)
 import Streamly.Internal.Data.Stream.StreamD.Type (Step (..))
 import Streamly.Internal.Data.Unfold (supply)
-import Streamly.Internal.Data.Unfold.Types (Unfold (..))
+import Streamly.Internal.Data.Unfold.Type (Unfold (..))
 
 import qualified Data.ByteString as B
-import qualified Streamly.Internal.Data.Stream.StreamD as D
 
 import Streamly.External.Archive.Internal.Foreign (Entry, FileType (..),
     archive_entry_filetype, archive_entry_pathname, archive_entry_pathname_utf8, archive_entry_size,
@@ -62,14 +62,14 @@ headerSize (Header e) = archive_entry_size e
 -- | Creates an unfold with which we can stream data out of the given archive.
 {-# INLINE readArchive #-}
 readArchive :: (MonadIO m) => FilePath -> Unfold m Void (Either Header ByteString)
-readArchive fp = flip supply () $
+readArchive fp = supply () $
     Unfold
         (\(arch, buf, sz, offs, pos, ref, readHeader) ->
             if readHeader then do
                 me <- liftIO $ archive_read_next_header arch
                 case me of
                     Nothing -> do
-                        liftIO $ D.runIORefFinalizer ref
+                        liftIO $ runIOFinalizer ref
                         return Stop
                     Just e -> do
                         return $ Yield (Left $ Header e) (arch, buf, sz, offs, 0, ref, False)
@@ -86,7 +86,7 @@ readArchive fp = flip supply () $
                 buf :: Ptr (Ptr CChar) <- liftIO malloc
                 sz :: Ptr CSize <- liftIO malloc
                 offs :: Ptr Int64 <- liftIO malloc
-                ref <- D.newFinalizedIORef $ archive_read_free arch >> free buf >> free sz >> free offs
+                ref <- newIOFinalizer $ archive_read_free arch >> free buf >> free sz >> free offs
                 return (arch, buf, sz, offs, ref)
             liftIO $ archive_read_support_filter_all arch
             liftIO $ archive_read_support_format_all arch

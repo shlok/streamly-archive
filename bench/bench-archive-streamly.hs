@@ -14,7 +14,7 @@ main = getArgs >>= dispatch
 
 dispatch :: [String] -> IO Int
 dispatch ["read", path] = do
-    let fol = FL.mkFold
+    let fol = FL.mkFoldM
             (\(!lastHeaderSize, !fileSize, !totalFilesize, !numFiles) e ->
                 case e of
                     Left h ->
@@ -22,10 +22,10 @@ dispatch ["read", path] = do
                             error "unexpected file size in archive"
                         else do
                             hsz <- headerSize h
-                            return (hsz, 0, totalFilesize + fromJust hsz, numFiles + 1)
+                            return $ FL.Partial (hsz, 0, totalFilesize + fromJust hsz, numFiles + 1)
                     Right d ->
-                        return (lastHeaderSize, fileSize + fromIntegral (B.length d), totalFilesize, numFiles))
-            (return (Nothing, 0, 0, 0 :: Int))
+                        return $ FL.Partial (lastHeaderSize, fileSize + fromIntegral (B.length d), totalFilesize, numFiles))
+            (return $ FL.Partial (Nothing, 0, 0, 0 :: Int))
             (\(_, _, x, y) -> return (x, y))
 
     (totalFileSize, fileCount) <-

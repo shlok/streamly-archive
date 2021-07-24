@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d1bdeda7161e474d2faae54074a27a35ecd88370e604246d11b83a5f54a66471
+-- hash: dec601ef940e00c9dddbd9a5b983bb2950256484cfc3f0fe67df83db65c8630e
 
 name:           streamly-archive
 version:        0.0.2
@@ -43,7 +43,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring ==0.10.*
-    , streamly ==0.7.*
+    , streamly ==0.8.*
   default-language: Haskell2010
 
 test-suite streamly-archive-test
@@ -64,7 +64,7 @@ test-suite streamly-archive-test
     , cryptonite >=0.26
     , directory >=1.3.6.0 && <1.4
     , filepath >=1.4.2.1 && <1.5
-    , streamly ==0.7.*
+    , streamly ==0.8.*
     , streamly-archive
     , tar >=0.5.1.1 && <0.6
     , tasty >=1.2.3 && <1.5

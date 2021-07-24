@@ -19,7 +19,7 @@ import Data.Either (isRight)
 import Data.Function ((&))
 import Data.List (nub, sort)
 import Data.Maybe (fromJust)
-import Streamly.Internal.Data.Fold.Types (Fold (..))
+import Streamly.Internal.Data.Fold.Type (Fold (Fold), Step (Partial))
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (addTrailingPathSeparator, hasTrailingPathSeparator, joinPath, takeDirectory)
 import System.IO.Temp (withSystemTempDirectory)
@@ -73,11 +73,11 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
                             mfp_ <- headerPathName h
                             mtyp_ <- headerFileType h
                             msz_ <- headerSize h
-                            return (unpack <$> mfp_, mtyp_, msz_, mbs)
-                        Right bs -> return (mfp, mtyp, msz, case mbs of
+                            return $ Partial (unpack <$> mfp_, mtyp_, msz_, mbs)
+                        Right bs -> return $ Partial (mfp, mtyp, msz, case mbs of
                             Nothing -> Just bs
                             Just bs' -> Just $ bs' `append` bs))
-                (return (Nothing, Nothing, Nothing, Nothing))
+                (return $ Partial (Nothing, Nothing, Nothing, Nothing))
                 return
 
         pathsFileTypesSizesAndByteStrings <-
@@ -116,11 +116,11 @@ testSparse = testCase "sparse" $ do
                 case e of
                     Left h -> do
                         mfp_ <- headerPathName h
-                        return (unpack <$> mfp_, mbs)
-                    Right bs -> return (mfp, case mbs of
+                        return $ Partial (unpack <$> mfp_, mbs)
+                    Right bs -> return $ Partial (mfp, case mbs of
                         Nothing -> Just bs
                         Just bs' -> Just $ bs' `append` bs))
-            (return (Nothing, Nothing))
+            (return $ Partial (Nothing, Nothing))
             return
 
     archive <-
