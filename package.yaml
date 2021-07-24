@@ -1,10 +1,10 @@
 name:                streamly-archive
-version:             0.0.2
+version:             0.1.0
 github:              "shlok/streamly-archive"
 license:             BSD3
 author:              "Shlok Datye"
 maintainer:          "sd-haskell@quant.is"
-copyright:           "2020 Shlok Datye"
+copyright:           "2021 Shlok Datye"
 
 synopsis:            Stream data from archives using the streamly library.
 category:            Archive, Codec, Streaming, Streamly
