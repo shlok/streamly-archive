@@ -27,8 +27,8 @@ import Data.Function ((&))
 import Data.Maybe (fromJust, fromMaybe)
 import Data.Void (Void)
 import Streamly.External.Archive (Header, headerPathName, readArchive)
-import Streamly.Internal.Data.Fold.Types (Fold (..))
-import Streamly.Internal.Data.Unfold.Types (Unfold)
+import Streamly.Internal.Data.Fold.Type (Fold (Fold), Step (Partial))
+import Streamly.Internal.Data.Unfold.Type (Unfold)
 import qualified Streamly.Prelude as S
 
 main :: IO ()
@@ -48,12 +48,12 @@ main = do
                     case e of
                         Left h -> do
                             mpath' <- headerPathName h
-                            return (mpath', mctx)
+                            return $ Partial (mpath', mctx)
                         Right bs ->
-                            return (mpath,
+                            return $ Partial (mpath,
                                 Just . (`hashUpdate` bs) $
                                     fromMaybe (hashInit @SHA256) mctx))
-                (return (Nothing, Nothing))
+                (return $ Partial (Nothing, Nothing))
                 (\(mpath, mctx) ->
                     return (show $ fromJust mpath,
                                 show . hashFinalize <$> mctx))
