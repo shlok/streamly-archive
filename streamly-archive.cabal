@@ -28,6 +28,8 @@ library
       Streamly.External.Archive.Internal.Foreign
   other-modules:
       Paths_streamly_archive
+  autogen-modules:
+      Paths_streamly_archive
   hs-source-dirs:
       src
   ghc-options: -Wall
@@ -45,6 +47,8 @@ test-suite streamly-archive-test
   main-is: TestSuite.hs
   other-modules:
       Streamly.External.Archive.Tests
+      Paths_streamly_archive
+  autogen-modules:
       Paths_streamly_archive
   hs-source-dirs:
       test
