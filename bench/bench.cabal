@@ -1,11 +1,4 @@
-cabal-version: 1.12
-
--- This file has been generated from package.yaml by hpack version 0.33.0.
---
--- see: https://github.com/sol/hpack
---
--- hash: 4bbef4402da7c321e61bf6868c0b93b92c9540c08a78fd58478fc26f1bfde9b0
-
+cabal-version:  3.0
 name:           bench
 version:        0.1.0.0
 build-type:     Simple
@@ -23,6 +16,7 @@ executable bench
     , bytestring
     , statistics
     , streamly
+    , streamly-core
     , streamly-archive
     , text
     , turtle
@@ -42,6 +36,7 @@ executable bench-archive-plain
     , bytestring
     , statistics
     , streamly
+    , streamly-core
     , streamly-archive
     , text
     , turtle
@@ -61,6 +56,7 @@ executable bench-archive-streamly
     , bytestring
     , statistics
     , streamly
+    , streamly-core
     , streamly-archive
     , text
     , turtle

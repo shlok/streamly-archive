@@ -15,7 +15,8 @@ Install libarchive on your system.
 ## Quick start
 
 ```haskell
-{-# LANGUAGE ScopedTypeVariables, TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Main where
 
@@ -26,43 +27,53 @@ import Data.Either (isRight)
 import Data.Function ((&))
 import Data.Maybe (fromJust, fromMaybe)
 import Data.Void (Void)
+import qualified Streamly.Data.Fold as F
+import qualified Streamly.Data.Parser as P
+import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.External.Archive (Header, headerPathName, readArchive)
 import Streamly.Internal.Data.Fold.Type (Fold (Fold), Step (Partial))
 import Streamly.Internal.Data.Unfold.Type (Unfold)
-import qualified Streamly.Prelude as S
 
 main :: IO ()
 main = do
-    -- Obtain an unfold for the archive.
-    -- For each entry in the archive, we will get a Header followed
-    -- by zero or more ByteStrings containing chunks of file data.
-    let unf :: Unfold IO Void (Either Header ByteString)
-            = readArchive "/path/to/archive.tar.gz"
+  -- Obtain an unfold for the archive.
+  -- For each entry in the archive, we will get a Header followed
+  -- by zero or more ByteStrings containing chunks of file data.
+  let unf :: Unfold IO Void (Either Header ByteString) =
+        readArchive "/path/to/archive.tar.gz"
 
-    -- Create a fold for converting each entry (which, as we saw
-    -- above, is a Left followed by zero or more Rights) into a
-    -- path and corresponding SHA-256 hash (Nothing for no data).
-    let entryFold :: Fold IO (Either Header ByteString) (String, Maybe String)
-            = Fold
-                (\(mpath, mctx) e ->
-                    case e of
-                        Left h -> do
-                            mpath' <- headerPathName h
-                            return $ Partial (mpath', mctx)
-                        Right bs ->
-                            return $ Partial (mpath,
-                                Just . (`hashUpdate` bs) $
-                                    fromMaybe (hashInit @SHA256) mctx))
-                (return $ Partial (Nothing, Nothing))
-                (\(mpath, mctx) ->
-                    return (show $ fromJust mpath,
-                                show . hashFinalize <$> mctx))
+  -- Create a fold for converting each entry (which, as we saw
+  -- above, is a Left followed by zero or more Rights) into a
+  -- path and corresponding SHA-256 hash (Nothing for no data).
+  let entryFold :: Fold IO (Either Header ByteString) (String, Maybe String) =
+        Fold
+          ( \(mpath, mctx) e ->
+              case e of
+                Left h -> do
+                  mpath' <- headerPathName h
+                  return $ Partial (mpath', mctx)
+                Right bs ->
+                  return $
+                    Partial
+                      ( mpath,
+                        Just . (`hashUpdate` bs) $
+                          fromMaybe (hashInit @SHA256) mctx
+                      )
+          )
+          (return $ Partial (Nothing, Nothing))
+          ( \(mpath, mctx) ->
+              return
+                ( show $ fromJust mpath,
+                  show . hashFinalize <$> mctx
+                )
+          )
 
-    -- Execute the stream, grouping at the headers (the Lefts) using the
-    -- above fold, and output the paths and SHA-256 hashes along the way.
-    S.unfold unf undefined
-        & S.groupsBy (\e _ -> isRight e) entryFold
-        & S.mapM_ print
+  -- Execute the stream, grouping at the headers (the Lefts) using the
+  -- above fold, and output the paths and SHA-256 hashes along the way.
+  S.unfold unf undefined
+    & S.parseMany (P.groupBy (\_ e -> isRight e) entryFold)
+    & S.mapM print
+    & S.fold F.drain
 ```
 
 ## Benchmarks

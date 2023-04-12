@@ -6,15 +6,15 @@ import Streamly.External.Archive (headerSize, readArchive)
 import System.Environment (getArgs)
 
 import qualified Data.ByteString as B
-import qualified Streamly.Internal.Data.Fold as FL
-import qualified Streamly.Prelude as S
+import qualified Streamly.Internal.Data.Fold as F
+import qualified Streamly.Data.Stream.Prelude as S
 
 main :: IO Int
 main = getArgs >>= dispatch
 
 dispatch :: [String] -> IO Int
 dispatch ["read", path] = do
-    let fol = FL.mkFoldM
+    let fol = F.foldtM'
             (\(!lastHeaderSize, !fileSize, !totalFilesize, !numFiles) e ->
                 case e of
                     Left h ->
@@ -22,10 +22,10 @@ dispatch ["read", path] = do
                             error "unexpected file size in archive"
                         else do
                             hsz <- headerSize h
-                            return $ FL.Partial (hsz, 0, totalFilesize + fromJust hsz, numFiles + 1)
+                            return $ F.Partial (hsz, 0, totalFilesize + fromJust hsz, numFiles + 1)
                     Right d ->
-                        return $ FL.Partial (lastHeaderSize, fileSize + fromIntegral (B.length d), totalFilesize, numFiles))
-            (return $ FL.Partial (Nothing, 0, 0, 0 :: Int))
+                        return $ F.Partial (lastHeaderSize, fileSize + fromIntegral (B.length d), totalFilesize, numFiles))
+            (return $ F.Partial (Nothing, 0, 0, 0 :: Int))
             (\(_, _, x, y) -> return (x, y))
 
     (totalFileSize, fileCount) <-

@@ -1,11 +1,4 @@
-cabal-version: 1.12
-
--- This file has been generated from package.yaml by hpack version 0.34.4.
---
--- see: https://github.com/sol/hpack
---
--- hash: 3fcf39b51710099491d88d24c7309b32d8799b3ab5c85856dddb8b74361e25be
-
+cabal-version:  3.0
 name:           streamly-archive
 version:        0.1.0
 synopsis:       Stream data from archives using the streamly library.
@@ -15,8 +8,8 @@ homepage:       https://github.com/shlok/streamly-archive#readme
 bug-reports:    https://github.com/shlok/streamly-archive/issues
 author:         Shlok Datye
 maintainer:     sd-haskell@quant.is
-copyright:      2021 Shlok Datye
-license:        BSD3
+copyright:      2023 Shlok Datye
+license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -42,8 +35,9 @@ library
       archive
   build-depends:
       base >=4.7 && <5
-    , bytestring ==0.10.*
-    , streamly ==0.8.*
+    , bytestring ==0.11.*
+    , streamly ==0.9.*
+    , streamly-core ==0.1.*
   default-language: Haskell2010
 
 test-suite streamly-archive-test
@@ -60,11 +54,12 @@ test-suite streamly-archive-test
   build-depends:
       QuickCheck >=2.13.2 && <2.15
     , base >=4.7 && <5
-    , bytestring ==0.10.*
+    , bytestring ==0.11.*
     , cryptonite >=0.26
     , directory >=1.3.6.0 && <1.4
     , filepath >=1.4.2.1 && <1.5
-    , streamly ==0.8.*
+    , streamly ==0.9.*
+    , streamly-core ==0.1.*
     , streamly-archive
     , tar >=0.5.1.1 && <0.6
     , tasty >=1.2.3 && <1.5

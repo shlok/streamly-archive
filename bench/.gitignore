@@ -1,2 +1,6 @@
+/.stack-work
+/dist-newstyle
+*~
 /tmp/
 /bench-archive
+/result

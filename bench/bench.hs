@@ -34,11 +34,11 @@ main = do
             `T.append` "-larchive -o bench-archive >> $logfile 2>&1") empty
 
     echo "Compiling Haskell programs... "
-    shells "stack build >> $logfile 2>&1" empty
+    shells "cabal build >> $logfile 2>&1" empty
 
     let c_executable = "./bench-archive"
-    hs_plain_executable <- T.strip <$> strict (inshell "stack exec -- which bench-archive-plain 2> /dev/null" empty)
-    hs_streamly_executable <- T.strip <$> strict (inshell "stack exec -- which bench-archive-streamly 2> /dev/null" empty)
+    hs_plain_executable <- T.strip <$> strict (inshell "cabal exec -- which bench-archive-plain 2> /dev/null" empty)
+    hs_streamly_executable <- T.strip <$> strict (inshell "cabal exec -- which bench-archive-streamly 2> /dev/null" empty)
 
     let fileCountsAndFileSizes :: [(Int,Int)] =
             [(2500000,1), (5000000,1), (20,250000000), (40,250000000), (80,250000000)]

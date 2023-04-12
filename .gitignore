@@ -1,4 +1,5 @@
-.stack-work/
-dist-newstyle/
+/.stack-work
+/dist-newstyle
 *~
 *.prof
+/result

@@ -28,7 +28,7 @@ import Foreign (Ptr, free, malloc)
 import Foreign.C.Types (CChar, CSize)
 import Streamly.Internal.Data.IOFinalizer (newIOFinalizer, runIOFinalizer)
 import Streamly.Internal.Data.Stream.StreamD.Type (Step (..))
-import Streamly.Internal.Data.Unfold (supply)
+import Streamly.Data.Unfold (lmap)
 import Streamly.Internal.Data.Unfold.Type (Unfold (..))
 
 import qualified Data.ByteString as B
@@ -62,7 +62,7 @@ headerSize (Header e) = archive_entry_size e
 -- | Creates an unfold with which we can stream data out of the given archive.
 {-# INLINE readArchive #-}
 readArchive :: (MonadIO m) => FilePath -> Unfold m Void (Either Header ByteString)
-readArchive fp = supply () $
+readArchive fp = (lmap .  const) () $
     Unfold
         (\(arch, buf, sz, offs, pos, ref, readHeader) ->
             if readHeader then do
