@@ -1,9 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Streamly.External.Archive
   ( -- ** Read
     readArchive,
+    groupByHeader,
 
     -- ** Header
     Header,
@@ -19,10 +21,16 @@ import Control.Exception (mask_)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+import Data.Either
+import Data.Function
 import Data.Int (Int64)
 import Data.Void (Void)
 import Foreign (Ptr, free, malloc)
 import Foreign.C.Types (CChar, CSize)
+import Streamly.Data.Fold (Fold)
+import qualified Streamly.Data.Parser as P
+import Streamly.Data.Stream.Prelude (Stream)
+import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.Data.Unfold (lmap)
 import Streamly.External.Archive.Internal.Foreign
   ( Entry,
@@ -61,6 +69,25 @@ headerPathNameUtf8 (Header e) = archive_entry_pathname_utf8 e
 {-# INLINE headerSize #-}
 headerSize :: Header -> IO (Maybe Int)
 headerSize (Header e) = archive_entry_size e
+
+-- | A convenience function for grouping @Either Header ByteString@s, usually obtained with
+-- 'readArchive', by the headers. The input @Fold@ processes a single entry (a 'Header' followed by
+-- zero or more @ByteString@s).
+groupByHeader ::
+  (Monad m) =>
+  Fold m (Either Header ByteString) b ->
+  Stream m (Either Header ByteString) ->
+  Stream m b
+groupByHeader itemFold str =
+  str
+    & S.parseMany (P.groupBy (\_ e -> isRight e) itemFold)
+    & fmap
+      ( \case
+          Left _ ->
+            -- groupBy is documented to never fail.
+            error "unexpected parseMany/groupBy error"
+          Right b -> b
+      )
 
 -- | Creates an unfold with which we can stream data out of the given archive.
 {-# INLINE readArchive #-}

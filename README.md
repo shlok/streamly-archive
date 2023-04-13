@@ -23,14 +23,17 @@ module Main where
 import Crypto.Hash (hashFinalize, hashInit, hashUpdate)
 import Crypto.Hash.Algorithms (SHA256)
 import Data.ByteString (ByteString)
-import Data.Either (isRight)
 import Data.Function ((&))
 import Data.Maybe (fromJust, fromMaybe)
 import Data.Void (Void)
 import qualified Streamly.Data.Fold as F
-import qualified Streamly.Data.Parser as P
 import qualified Streamly.Data.Stream.Prelude as S
-import Streamly.External.Archive (Header, headerPathName, readArchive)
+import Streamly.External.Archive
+  ( Header,
+    groupByHeader,
+    headerPathName,
+    readArchive,
+  )
 import Streamly.Internal.Data.Fold.Type (Fold (Fold), Step (Partial))
 import Streamly.Internal.Data.Unfold.Type (Unfold)
 
@@ -71,7 +74,7 @@ main = do
   -- Execute the stream, grouping at the headers (the Lefts) using the
   -- above fold, and output the paths and SHA-256 hashes along the way.
   S.unfold unf undefined
-    & S.parseMany (P.groupBy (\_ e -> isRight e) entryFold)
+    & groupByHeader entryFold
     & S.mapM print
     & S.fold F.drain
 ```
