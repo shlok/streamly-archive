@@ -42,6 +42,7 @@
                   final.myHaskellPkgs.cabal-install
                   final.myHaskellPkgs.haskell-language-server
                   final.pkgs.pcre
+                  final.pkgs.bc
                 ];
               };
             })

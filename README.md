@@ -85,4 +85,4 @@ See `./bench/README.md`. We find on our machine<sup>†</sup> that (1) reading a
 
 The former fulfills the promise of [streamly](https://hackage.haskell.org/package/streamly) and stream fusion. The differences to C are presumably explained by the marshalling of data into the Haskell world and are currently small enough for our purposes.
 
-<sup>†</sup> [Linode](https://linode.com); Debian 10, Dedicated 32GB: 16 CPU, 640GB Storage, 32GB RAM.
+<sup>†</sup> April 2023; [Linode](https://linode.com); Debian 11, Dedicated 32GB: 16 CPU, 640GB Storage, 32GB RAM.
