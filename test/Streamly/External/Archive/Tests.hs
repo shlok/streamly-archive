@@ -17,6 +17,8 @@ import Data.Either (isRight)
 import Data.Function ((&))
 import Data.List (nub, sort)
 import Data.Maybe (fromJust)
+import qualified Streamly.Data.Parser as P
+import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.External.Archive
   ( FileType (..),
     headerFileType,
@@ -26,7 +28,6 @@ import Streamly.External.Archive
   )
 import Streamly.External.Archive.Internal.Foreign (blockSize)
 import Streamly.Internal.Data.Fold.Type (Fold (Fold), Step (Partial))
-import qualified Streamly.Prelude as S
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (addTrailingPathSeparator, hasTrailingPathSeparator, joinPath, takeDirectory)
 import System.IO.Temp (withSystemTempDirectory)
@@ -87,8 +88,8 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
 
     pathsFileTypesSizesAndByteStrings <-
       S.unfold (readArchive archFile) undefined
-        & S.groupsBy (\a _ -> isRight a) fileFold
-        & S.map (\(mfp, mtyp, msz, mbs) -> (fromJust mfp, fromJust mtyp, msz, mbs))
+        & S.parseMany (P.groupBy (\_ e -> isRight e) fileFold)
+        & fmap (\(Right (mfp, mtyp, msz, mbs)) -> (fromJust mfp, fromJust mtyp, msz, mbs))
         & S.toList
 
     -- Make the file paths and ByteStrings comparable and compare them.
@@ -148,8 +149,8 @@ testSparse = testCase "sparse" $ do
 
   archive <-
     S.unfold (readArchive "test/data/sparse.tar") undefined
-      & S.groupsBy (\a _ -> isRight a) fileFold
-      & S.map (\(mfp, mbs) -> (fromJust mfp, fromJust mbs))
+      & S.parseMany (P.groupBy (\_ e -> isRight e) fileFold)
+      & fmap (\(Right (mfp, mbs)) -> (fromJust mfp, fromJust mbs))
       & S.toList
 
   assertEqual "" (map fst archive) ["zero", "zeroZero", "zeroAsdf", "asdfZero"]
