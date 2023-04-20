@@ -1,6 +1,11 @@
+## 0.2.0
+
+* Updated for Streamly 0.9.0.
+* Added `groupByHeader` convenience function.
+
 ## 0.1.0
 
-* Updated for streamly 0.8.0.
+* Updated for Streamly 0.8.0.
 
 ## 0.0.2
 
