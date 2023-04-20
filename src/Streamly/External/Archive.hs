@@ -73,6 +73,7 @@ headerSize (Header e) = archive_entry_size e
 -- | A convenience function for grouping @Either Header ByteString@s, usually obtained with
 -- 'readArchive', by the headers. The input @Fold@ processes a single entry (a 'Header' followed by
 -- zero or more @ByteString@s).
+{-# INLINE groupByHeader #-}
 groupByHeader ::
   (Monad m) =>
   Fold m (Either Header ByteString) b ->
