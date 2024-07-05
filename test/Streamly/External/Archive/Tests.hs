@@ -1,33 +1,34 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module Streamly.External.Archive.Tests (tests) where
 
 import qualified Codec.Archive.Tar as Tar
-import Codec.Compression.GZip (compress)
-import Control.Monad (forM)
-import Crypto.Random.Entropy (getEntropy)
-import Data.Bifunctor (first)
-import Data.ByteString (ByteString, append)
+import Codec.Compression.GZip
+import Control.Monad
+import Crypto.Random.Entropy
+import Data.Bifunctor
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
-import Data.ByteString.Char8 (unpack)
+import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as LB
-import Data.Char (chr, ord)
-import Data.Function ((&))
-import Data.List (nub, sort)
-import Data.Maybe (fromJust)
+import Data.Char
+import Data.Function
+import Data.List
+import Data.Maybe
+import qualified Streamly.Data.Fold as F
 import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.External.Archive
-import Streamly.External.Archive.Internal.Foreign (blockSize)
-import Streamly.Internal.Data.Fold.Type (Fold (Fold), Step (Partial))
-import System.Directory (createDirectoryIfMissing)
-import System.FilePath (addTrailingPathSeparator, hasTrailingPathSeparator, joinPath, takeDirectory)
-import System.IO.Temp (withSystemTempDirectory)
-import Test.QuickCheck (Gen, choose, frequency, vectorOf)
-import Test.QuickCheck.Monadic (monadicIO, pick, run)
-import Test.Tasty (TestTree)
-import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
-import Test.Tasty.QuickCheck (testProperty)
+import Streamly.External.Archive.Internal.Foreign
+import System.Directory
+import System.FilePath
+import System.IO.Temp
+import Test.QuickCheck
+import Test.QuickCheck.Monadic
+import Test.Tasty
+import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
 
 tests :: [TestTree]
 tests =
@@ -36,16 +37,15 @@ tests =
     testSparse
   ]
 
--- | Use other libraries to create a tar (or tar.gz) file containing random data,
--- read the file back using our library, and check if the results are as expected.
+-- | Use other libraries to create a tar (or tar.gz) file containing random data, read the file back
+-- using our library, and check if the results are as expected.
 testTar :: Bool -> TestTree
 testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ monadicIO $ do
   -- Generate a random file system hierarchy.
   hierarchy <- pick $ randomHierarchy "" 4 4 5
 
-  -- Create a new temporary directory, write our hierarchy into
-  -- a "files" subdirectory of the temporary directory, use other
-  -- libraries to create files.tar (or files.tar.gz), read the file
+  -- Create a new temporary directory, write our hierarchy into a "files" subdirectory of the
+  -- temporary directory, use other libraries to create files.tar (or files.tar.gz), read the file
   -- back using our library, and check if the results are as expected.
   run . withSystemTempDirectory "archive-streaming-testZip" $ \tmpDir -> do
     let filesDir = joinPath [tmpDir, "files"]
@@ -56,30 +56,28 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
     LB.writeFile archFile . (if gz then compress else id) . Tar.write =<< Tar.pack tmpDir ["files"]
 
     let fileFold =
-          Fold
+          F.foldlM'
             ( \(mfp, mtyp, msz, mbs) e ->
                 case e of
                   Left h -> do
                     mfp_ <- headerPathName h
                     mtyp_ <- headerFileType h
                     msz_ <- headerSize h
-                    return $ Partial (unpack <$> mfp_, mtyp_, msz_, mbs)
+                    return (BC.unpack <$> mfp_, mtyp_, msz_, mbs)
                   Right bs ->
-                    return $
-                      Partial
-                        ( mfp,
-                          mtyp,
-                          msz,
-                          case mbs of
-                            Nothing -> Just bs
-                            Just bs' -> Just $ bs' `append` bs
-                        )
+                    return
+                      ( mfp,
+                        mtyp,
+                        msz,
+                        case mbs of
+                          Nothing -> Just bs
+                          Just bs' -> Just $ bs' `BC.append` bs
+                      )
             )
-            (return $ Partial (Nothing, Nothing, Nothing, Nothing))
-            return
+            (return (Nothing, Nothing, Nothing, Nothing))
 
     pathsFileTypesSizesAndByteStrings <-
-      S.unfold (readArchive archFile) undefined
+      S.unfold readArchive archFile
         & groupByHeader fileFold
         & fmap (\(mfp, mtyp, msz, mbs) -> (fromJust mfp, fromJust mtyp, msz, mbs))
         & S.toList
@@ -121,26 +119,24 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
 testSparse :: TestTree
 testSparse = testCase "sparse" $ do
   let fileFold =
-        Fold
+        F.foldlM'
           ( \(mfp, mbs) e ->
               case e of
                 Left h -> do
                   mfp_ <- headerPathName h
-                  return $ Partial (unpack <$> mfp_, mbs)
+                  return (BC.unpack <$> mfp_, mbs)
                 Right bs ->
-                  return $
-                    Partial
-                      ( mfp,
-                        case mbs of
-                          Nothing -> Just bs
-                          Just bs' -> Just $ bs' `append` bs
-                      )
+                  return
+                    ( mfp,
+                      case mbs of
+                        Nothing -> Just bs
+                        Just bs' -> Just $ bs' `BC.append` bs
+                    )
           )
-          (return $ Partial (Nothing, Nothing))
-          return
+          (return (Nothing, Nothing))
 
   archive <-
-    S.unfold (readArchive "test/data/sparse.tar") undefined
+    S.unfold readArchive "test/data/sparse.tar"
       & groupByHeader fileFold
       & fmap (\(mfp, mbs) -> (fromJust mfp, fromJust mbs))
       & S.toList
@@ -156,9 +152,9 @@ testSparse = testCase "sparse" $ do
   assertBool "unexpected bytestring (3)" $ snd (archive !! 2) == zero `B.append` asdf
   assertBool "unexpected bytestring (4)" $ snd (archive !! 3) == asdf `B.append` zero
 
--- | Writes a given hierarchy of relative paths (created with 'randomHierarchy') to disk
--- in the specified directory and returns the same hierarchy except with actual ByteStrings
--- instead of lengths. Note: The original relative paths are returned back unaltered.
+-- | Writes a given hierarchy of relative paths (created with 'randomHierarchy') to disk in the
+-- specified directory and returns the same hierarchy except with actual ByteStrings instead of
+-- lengths. Note: The original relative paths are returned back unaltered.
 writeHierarchy :: FilePath -> [(FilePath, Maybe Int)] -> IO [(FilePath, Maybe ByteString)]
 writeHierarchy writeDir = mapM $ \(p, mBsLen) ->
   let fullp = joinPath [writeDir, p]
@@ -175,10 +171,9 @@ writeHierarchy writeDir = mapM $ \(p, mBsLen) ->
             )
         Nothing -> createDirectoryIfMissing True fullp >> return (p, Nothing)
 
--- | Recursively generates a random hierarchy of relative paths to files and
--- directories. (Nothing is written to disk; only the paths are returned.)
--- The initial dirPath should be "". A random bytestring length is
--- provided in case of a file; 'Nothing' in the case of a directory.
+-- | Recursively generates a random hierarchy of relative paths to files and directories. (Nothing
+-- is written to disk; only the paths are returned.) The initial dirPath should be "". A random
+-- bytestring length is provided in case of a file; 'Nothing' in the case of a directory.
 randomHierarchy :: FilePath -> Int -> Int -> Int -> Gen [(FilePath, Maybe Int)]
 randomHierarchy dirPath maxFiles maxDirs maxDepth = do
   numFiles <- choose (0, maxFiles)
@@ -210,10 +205,10 @@ randomHierarchy dirPath maxFiles maxDirs maxDepth = do
             randomHierarchy dirPath' (maxFiles `div` 2) (maxDirs `div` 2) (maxDepth - 1)
         )
 
-  return $ zip filePaths bsLengths ++ zip dirPaths (repeat Nothing) ++ recursion
+  return $ zip filePaths bsLengths ++ map (,Nothing) dirPaths ++ recursion
 
--- | Generates a random path component of length between 1 and 10, e.g., "HO53UVKQ".
--- For compatibility with case-insensitive file systems, uses only one case.
+-- | Generates a random path component of length between 1 and 10, e.g., "HO53UVKQ". For
+-- compatibility with case-insensitive file systems, uses only one case.
 pathComponent :: Gen String
 pathComponent = do
   len <- choose (1, 10)

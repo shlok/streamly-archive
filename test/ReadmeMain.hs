@@ -1,24 +1,7 @@
-# streamly-archive
-
-[![Hackage](https://img.shields.io/hackage/v/streamly-archive.svg?style=flat)](https://hackage.haskell.org/package/streamly-archive)
-![CI](https://github.com/shlok/streamly-archive/workflows/CI/badge.svg?branch=master)
-
-Stream data from archives (tar, tar.gz, zip, or any other format [supported by libarchive](https://github.com/libarchive/libarchive/wiki/LibarchiveFormats)) using the Haskell [streamly](https://hackage.haskell.org/package/streamly) library.
-
-## Requirements
-
-Install libarchive on your system.
-
-* Debian Linux: `sudo apt-get install libarchive-dev`.
-* macOS: `brew install libarchive`.
-
-## Quick start
-
-```haskell
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Main where
+module ReadmeMain where
 
 import Crypto.Hash
 import Data.ByteString (ByteString)
@@ -67,12 +50,3 @@ main = do
     & groupByHeader entryFold
     & S.mapM print
     & S.fold F.drain
-```
-
-## Benchmarks
-
-See `./bench/README.md`. Summary (with rough figures from our machine<sup>†</sup>):
- * For 1-byte files, this library has roughly a 90 ns/byte overhead compared to plain Haskell `IO` code, which has roughly a 680 ns/byte overhead compared to plain C.
- * For larger (> 10 KB) files, this library performs just as good as plain Haskell `IO` code, which has roughly a 0.15 ns/byte overhead compared to plain C.
-
-<sup>†</sup> July 2024; NixOS 22.11; Intel i7-12700K (3.6 GHz, 12 cores); Corsair VENGEANCE LPX DDR4 RAM 64GB (2 x 32GB) 3200MHz; Samsung 970 EVO Plus SSD 2TB (M.2 NVMe).

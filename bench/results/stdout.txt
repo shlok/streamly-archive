@@ -1,0 +1,241 @@
+Compiling C program... 
+Compiling Haskell programs... 
+Run all benchmarks without asking? (y/N) y
+----------------------------------------
+Create archives? (y/N) (automatic yes)
+Creating archives using C program (unless they already exist)...
+    Creating archive ./tmp/test_2500000_1.tar... success.
+    Creating archive ./tmp/test_5000000_1.tar... success.
+    Creating archive ./tmp/test_10000000_1.tar... success.
+    Creating archive ./tmp/test_2500000_100.tar... success.
+    Creating archive ./tmp/test_5000000_100.tar... success.
+    Creating archive ./tmp/test_10000000_100.tar... success.
+    Creating archive ./tmp/test_2500000_1000.tar... success.
+    Creating archive ./tmp/test_5000000_1000.tar... success.
+    Creating archive ./tmp/test_10000000_1000.tar... success.
+    Creating archive ./tmp/test_250000_10000.tar... success.
+    Creating archive ./tmp/test_500000_10000.tar... success.
+    Creating archive ./tmp/test_1000000_10000.tar... success.
+    Creating archive ./tmp/test_25000_100000.tar... success.
+    Creating archive ./tmp/test_50000_100000.tar... success.
+    Creating archive ./tmp/test_100000_100000.tar... success.
+    Creating archive ./tmp/test_2500_1000000.tar... success.
+    Creating archive ./tmp/test_5000_1000000.tar... success.
+    Creating archive ./tmp/test_10000_1000000.tar... success.
+    Creating archive ./tmp/test_250_10000000.tar... success.
+    Creating archive ./tmp/test_500_10000000.tar... success.
+    Creating archive ./tmp/test_1000_10000000.tar... success.
+Time taken for creating archives: 0.031399 hours.
+----------------------------------------
+Measure read performance? (y/N) (automatic yes)
+    Reading archive ./tmp/test_2500000_1.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500000_1.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500000_1.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_5000000_1.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000000_1.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000000_1.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_10000000_1.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000000_1.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000000_1.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_2500000_100.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500000_100.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500000_100.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_5000000_100.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000000_100.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000000_100.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_10000000_100.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000000_100.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000000_100.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_2500000_1000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500000_1000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500000_1000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_5000000_1000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000000_1000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000000_1000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_10000000_1000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000000_1000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000000_1000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_250000_10000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_250000_10000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_250000_10000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_500000_10000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_500000_10000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_500000_10000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_1000000_10000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_1000000_10000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_1000000_10000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_25000_100000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_25000_100000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_25000_100000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_50000_100000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_50000_100000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_50000_100000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_100000_100000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_100000_100000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_100000_100000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_2500_1000000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500_1000000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_2500_1000000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_5000_1000000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000_1000000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_5000_1000000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_10000_1000000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000_1000000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_10000_1000000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_250_10000000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_250_10000000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_250_10000000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_500_10000000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_500_10000000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_500_10000000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+    Reading archive ./tmp/test_1000_10000000.tar with C...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_1000_10000000.tar with Haskell (plain)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Reading archive ./tmp/test_1000_10000000.tar with Haskell (streamly)...
+        Warming up... 1 done.
+        Timing... 1 2 3 4 5 6 7 8 9 10 done.
+    Appended results to ./tmp/read.csv
+Time taken for measuring read performance: 0.635985 hours.

@@ -2,20 +2,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import qualified Data.ByteString as B
-import Data.Int (Int64)
-import Data.Maybe (fromJust)
-import Foreign (malloc)
+import Data.Int
+import Data.Maybe
+import Foreign
 import Streamly.External.Archive.Internal.Foreign
-  ( archive_entry_size,
-    archive_read_data_block,
-    archive_read_free,
-    archive_read_new,
-    archive_read_next_header,
-    archive_read_open_filename,
-    archive_read_support_filter_all,
-    archive_read_support_format_all,
-  )
-import System.Environment (getArgs)
+import System.Environment
 
 main :: IO Int
 main = getArgs >>= dispatch

@@ -1,13 +1,15 @@
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
-import Control.Monad (forM, forM_)
-import Data.List (intercalate)
+import Control.Monad
+import Data.List
 import qualified Data.Text as T
+import Data.Time.Clock
 import qualified Data.Vector as V
-import Statistics.Sample (mean, stdDev)
+import Statistics.Sample
 import Turtle
 
 data Platform = PlatformLinux | PlatformMacOS deriving (Eq)
@@ -42,22 +44,62 @@ main = do
     empty
 
   echo "Compiling Haskell programs... "
-  shells "cabal build >> $logfile 2>&1" empty
+  shells "cabal build -ffusion-plugin >> $logfile 2>&1" empty
 
   let c_executable = "./bench-archive"
-  hs_plain_executable <-
-    T.strip <$> strict (inshell "cabal exec -- which bench-archive-plain 2> /dev/null" empty)
-  hs_streamly_executable <-
-    T.strip <$> strict (inshell "cabal exec -- which bench-archive-streamly 2> /dev/null" empty)
 
+  -- Verbosity 0 helped avoid the beginning "Resolving dependencies..." output.
+  hs_plain_executable <-
+    T.strip
+      <$> strict (inshell "cabal exec --verbose=0 -- which bench-archive-plain 2> /dev/null" empty)
+  hs_streamly_executable <-
+    T.strip
+      <$> strict
+        (inshell "cabal exec --verbose=0 -- which bench-archive-streamly 2> /dev/null" empty)
+
+  -- The files will be smaller than our RAM (64 GB). Due to warmCount/timeCount below, these files
+  -- might get memory mapped by the OS. This seems fine because we’re comparing our Haskell and C
+  -- programs when they can run as fast as possible. (For files larger than RAM, we might begin to
+  -- measure irrelevant things we can’t improve on.)
   let fileCountsAndFileSizes :: [(Int, Int)] =
-        [(2500000, 1), (5000000, 1), (20, 250000000), (40, 250000000), (80, 250000000)]
+        [ -- 1 byte files. (It turned out each file uses up at least ~1 KB in the archive.)
+          (2_500_000, 1),
+          (5_000_000, 1),
+          (10_000_000, 1), -- ~10 GB.
+          -- 100 byte files.
+          (2_500_000, 100),
+          (5_000_000, 100),
+          (10_000_000, 100), -- ~10 GB.
+          -- 1 KB files.
+          (2_500_000, 1000),
+          (5_000_000, 1000),
+          (10_000_000, 1000), -- ~10 GB.
+          -- 10 KB files.
+          (250_000, 10_000),
+          (500_000, 10_000),
+          (1_000_000, 10_000), -- ~10 GB.
+          -- 100 KB files.
+          (25_000, 100_000),
+          (50_000, 100_000),
+          (100_000, 100_000), -- ~10 GB.
+          -- 1 MB files.
+          (2_500, 1_000_000),
+          (5_000, 1_000_000),
+          (10_000, 1_000_000), -- ~10 GB.
+          -- 10 MB files.
+          (250, 10_000_000),
+          (500, 10_000_000),
+          (1000, 10_000_000) -- ~10 GB.
+        ]
+
+  autoYes <- answerIsYes False "Run all benchmarks without asking?"
 
   echoHrule
-  answerIsYes "Create archives?"
+  answerIsYes autoYes "Create archives?"
     >>= flip
       when
       ( do
+          t1 <- getCurrentTime
           echo "Creating archives using C program (unless they already exist)..."
           let tmpDir :: (IsString a) => a
               tmpDir = "./tmp"
@@ -83,13 +125,18 @@ main = do
                   )
                   empty
                 echo "success."
+          t2 <- getCurrentTime
+          printf
+            ("Time taken for creating archives: " % f % " hours.\n")
+            (realToFrac (diffUTCTime t2 t1) / (60 * 60))
       )
 
   echoHrule
-  answerIsYes "Measure read performance?"
+  answerIsYes autoYes "Measure read performance?"
     >>= flip
       when
       ( do
+          t1 <- getCurrentTime
           let tmpDir :: (IsString a) => a
               tmpDir = "./tmp"
           mktree tmpDir
@@ -99,15 +146,13 @@ main = do
           shells (format ("rm -f " % fp % "") csvFile) empty
 
           output csvFile . return . unsafeTextToLine . T.pack $
-            "fileCount,fileSize,"
+            "fileCount,fileSize,totalBytes,"
               ++ "c_mean,c_std,"
               ++ "hsPlain_mean,hsPlain_std,"
-              ++ "hsStreamly_mean,hsStreamly_std,"
-              ++ "hsPlain_div_c_mean,hsPlain_div_c_std,"
-              ++ "hsStreamly_div_c_mean,hsStreamly_div_c_std,"
-              ++ "hsStreamly_div_hsPlain_mean,hsStreamly_div_hsPlain_std"
+              ++ "hsStreamly_mean,hsStreamly_std"
 
           forM_ fileCountsAndFileSizes $ \(fileCount, fileSize') -> do
+            let totalBytes = fileCount * fileSize'
             let archivePath =
                   format ("" % fp % "/test_" % d % "_" % d % ".tar") tmpDir fileCount fileSize'
             let args = format ("read " % s % "") archivePath
@@ -116,67 +161,59 @@ main = do
             let warmCount = 1
             let timeCount = 10
             procs "echo" [format ("    Reading archive " % s % " with C...") archivePath] empty
-            cTimes <-
-              timeCommand
-                Nothing
-                (format ("" % s % " " % s % "") c_executable args)
-                [expectedInOutput1, expectedInOutput2]
-                warmCount
-                timeCount
+            (cMean, cStd) <-
+              toStats totalBytes
+                <$> timeCommand
+                  Nothing
+                  (format ("" % s % " " % s % "") c_executable args)
+                  [expectedInOutput1, expectedInOutput2]
+                  warmCount
+                  timeCount
             procs
               "echo"
               [format ("    Reading archive " % s % " with Haskell (plain)...") archivePath]
               empty
-            hsPlainTimes <-
-              timeCommand
-                Nothing
-                (format ("" % s % " " % s % "") hs_plain_executable args)
-                [expectedInOutput1, expectedInOutput2]
-                warmCount
-                timeCount
+            (hsPlainMean, hsPlainStd) <-
+              toStats totalBytes
+                <$> timeCommand
+                  Nothing
+                  (format ("" % s % " " % s % "") hs_plain_executable args)
+                  [expectedInOutput1, expectedInOutput2]
+                  warmCount
+                  timeCount
             procs
               "echo"
               [format ("    Reading archive " % s % " with Haskell (streamly)...") archivePath]
               empty
-            hsStreamlyTimes <-
-              timeCommand
-                Nothing
-                (format ("" % s % " " % s % "") hs_streamly_executable args)
-                [expectedInOutput1, expectedInOutput2]
-                warmCount
-                timeCount
-
-            let hsPlainDivCTimes = [a / b | a <- hsPlainTimes, b <- cTimes]
-            let hsStreamlyDivCTimes = [a / b | a <- hsStreamlyTimes, b <- cTimes]
-            let hsStreamlyDivHsPlainTimes = [a / b | a <- hsStreamlyTimes, b <- hsPlainTimes]
-
-            let mean' :: [NominalDiffTime] -> Double
-                mean' xs = mean . V.fromList $ map realToFrac xs
-
-            let std' :: [NominalDiffTime] -> Double
-                std' xs = stdDev . V.fromList $ map realToFrac xs
+            (hsStreamlyMean, hsStreamlyStd) <-
+              toStats totalBytes
+                <$> timeCommand
+                  Nothing
+                  (format ("" % s % " " % s % "") hs_streamly_executable args)
+                  [expectedInOutput1, expectedInOutput2]
+                  warmCount
+                  timeCount
 
             let line =
                   intercalate "," $
-                    [show fileCount, show fileSize']
+                    [show fileCount, show fileSize', show totalBytes]
                       ++ map
                         show
-                        [ mean' cTimes,
-                          std' cTimes,
-                          mean' hsPlainTimes,
-                          std' hsPlainTimes,
-                          mean' hsStreamlyTimes,
-                          std' hsStreamlyTimes,
-                          mean' hsPlainDivCTimes,
-                          std' hsPlainDivCTimes,
-                          mean' hsStreamlyDivCTimes,
-                          std' hsStreamlyDivCTimes,
-                          mean' hsStreamlyDivHsPlainTimes,
-                          std' hsStreamlyDivHsPlainTimes
+                        [ cMean,
+                          cStd,
+                          hsPlainMean,
+                          hsPlainStd,
+                          hsStreamlyMean,
+                          hsStreamlyStd
                         ]
+
             append csvFile . return . unsafeTextToLine . T.pack $ line
             procs "echo" [format ("    Appended results to " % s % "") csvFile] empty
-            return ()
+
+          t2 <- getCurrentTime
+          printf
+            ("Time taken for measuring read performance: " % f % " hours.\n")
+            (realToFrac (diffUTCTime t2 t1) / (60 * 60))
       )
 
 failWithMsg :: Line -> IO a
@@ -185,13 +222,18 @@ failWithMsg msg = echo msg >> exit (ExitFailure 1)
 echoHrule :: IO ()
 echoHrule = echo "----------------------------------------"
 
-answerIsYes :: String -> IO Bool
-answerIsYes question = do
+answerIsYes :: Bool -> String -> IO Bool
+answerIsYes autoYes question = do
   procs "echo" ["-n", T.pack $ question ++ " (y/N) "] empty
-  line <- readline
-  case line of
-    Just answer | answer == "y" -> return True
-    _ -> return False
+  if autoYes
+    then do
+      procs "echo" ["(automatic yes)"] empty
+      return True
+    else do
+      line <- readline
+      case line of
+        Just answer | answer == "y" -> return True
+        _ -> return False
 
 timeCommand' :: Text -> [Text] -> IO NominalDiffTime
 timeCommand' cmdAndArgs expectedInOut = do
@@ -223,3 +265,10 @@ timeCommand forceRemovalPath cmdAndArgs expectedInOut warmCount timeCount = do
   removePath
   echo "done."
   return times
+
+-- Mean and standard deviation of nanoseconds per byte.
+toStats :: Int -> [NominalDiffTime] -> (Double, Double)
+toStats bytes' secs =
+  let nsPerByte =
+        V.fromList $ map (realToFrac . (/ fromIntegral bytes') . (* 1e9)) secs
+   in (mean nsPerByte, stdDev nsPerByte)

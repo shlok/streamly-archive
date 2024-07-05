@@ -1,0 +1,5 @@
+builds:
+  exclude: []
+  include:
+  - 'packages.x86_64-linux.streamly-archive-ci'
+  - 'packages.aarch64-darwin.streamly-archive-ci'

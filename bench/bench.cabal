@@ -3,14 +3,16 @@ name:           bench
 version:        0.1.0.0
 build-type:     Simple
 
+flag fusion-plugin
+  description: Use fusion plugin for for best performance
+  manual: True
+  default: False
+
 executable bench
   main-is: bench.hs
   other-modules:
       Paths_bench
-  ghc-options: -Wall -optc-O2 -O2 -threaded -rtsopts -with-rtsopts=-N
-  cc-options: -Wall -O2
-  extra-libraries:
-      archive
+  ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -19,6 +21,7 @@ executable bench
     , streamly-core
     , streamly-archive
     , text
+    , time
     , turtle
     , vector
   default-language: Haskell2010
@@ -27,10 +30,7 @@ executable bench-archive-plain
   main-is: bench-archive-plain.hs
   other-modules:
       Paths_bench
-  ghc-options: -Wall -optc-O2 -O2 -threaded -rtsopts -with-rtsopts=-N
-  cc-options: -Wall -O2
-  extra-libraries:
-      archive
+  ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -47,13 +47,21 @@ executable bench-archive-streamly
   main-is: bench-archive-streamly.hs
   other-modules:
       Paths_bench
-  ghc-options: -Wall -optc-O2 -O2 -threaded -rtsopts -with-rtsopts=-N
-  cc-options: -Wall -O2
-  extra-libraries:
-      archive
+  ghc-options:
+    -Wall
+    -O2
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+    -fdicts-strict
+    -fmax-worker-args=16
+    -fspec-constr-recursive=16
   build-depends:
       base >=4.7 && <5
     , bytestring
+    -- For simplicity, activating fusion-plugin always. (If this was only included under the
+    -- fusion-plugin flag, we would have to manually deal with this dependency in flake.nix.)
+    , fusion-plugin
     , statistics
     , streamly
     , streamly-core
@@ -61,4 +69,9 @@ executable bench-archive-streamly
     , text
     , turtle
     , vector
+
+  -- Without this, "cabal repl bench-archive-streamly" doesn’t work.
+  if flag(fusion-plugin)
+    ghc-options: -fplugin Fusion.Plugin
+
   default-language: Haskell2010

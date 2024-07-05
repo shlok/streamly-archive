@@ -1,3 +1,8 @@
+## 0.3.0
+
+* Updated for Streamly 0.10.0.
+* Eliminated the `Void` seed for `readArchive`.
+
 ## 0.2.0
 
 * Updated for Streamly 0.9.0.

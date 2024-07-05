@@ -20,18 +20,16 @@ module Streamly.External.Archive.Internal.Foreign
   )
 where
 
-import Control.Exception (Exception, mask_, throw)
-import Control.Monad (when)
-import Data.Bits ((.&.))
-import Data.ByteString (ByteString, packCString, packCStringLen)
+import Control.Exception
+import Control.Monad
+import Data.Bits
+import Data.ByteString
 import qualified Data.ByteString as B
-import Data.Int (Int64)
-import Foreign (FunPtr, Ptr, nullPtr, peek)
-import Foreign.C.String (CString, peekCString, withCString)
-import Foreign.C.Types (CChar, CInt (CInt), CSize (CSize))
-import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
-import Foreign.Marshal.Alloc (mallocBytes)
-import System.Posix.Types (CMode (CMode), CSsize (CSsize))
+import Data.Int
+import Foreign
+import Foreign.C.String
+import Foreign.C.Types
+import System.Posix.Types
 
 data CArchive
 
@@ -256,8 +254,8 @@ archive_entry_size (Entry feptr) = withForeignPtr feptr $ \eptr -> do
 alloc_archive_read_data_buffer :: IO (Ptr CChar)
 alloc_archive_read_data_buffer = mallocBytes blockSize
 
--- | Returns 'Nothing' if there is no more data for the current entry.
--- Pass in a buffer allocated with 'alloc_archive_read_data_buffer'.
+-- | Returns 'Nothing' if there is no more data for the current entry. Pass in a buffer allocated
+-- with 'alloc_archive_read_data_buffer'.
 {-# INLINE archive_read_data #-}
 archive_read_data :: Archive -> Ptr CChar -> IO (Maybe ByteString)
 archive_read_data (Archive aptr) buf = do

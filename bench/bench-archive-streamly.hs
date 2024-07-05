@@ -2,12 +2,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import qualified Data.ByteString as B
-import Data.Function ((&))
-import Data.Maybe (fromJust, isJust)
+import Data.Function
+import Data.Maybe
 import qualified Streamly.Data.Stream.Prelude as S
-import Streamly.External.Archive (headerSize, readArchive)
+import Streamly.External.Archive
 import qualified Streamly.Internal.Data.Fold as F
-import System.Environment (getArgs)
+import System.Environment
 
 main :: IO Int
 main = getArgs >>= dispatch
@@ -38,7 +38,7 @@ dispatch ["read", path] = do
           (\(_, _, x, y) -> return (x, y))
 
   (totalFileSize, fileCount) <-
-    S.unfold (readArchive path) undefined
+    S.unfold readArchive path
       & S.fold fol
 
   putStrLn $ "Total filesize: " ++ show totalFileSize
