@@ -72,7 +72,7 @@ main = do
 ## Benchmarks
 
 See `./bench/README.md`. Summary (with rough figures from our machine<sup>†</sup>):
- * For 1-byte files, this library has roughly a 90 ns/byte overhead compared to plain Haskell `IO` code, which has roughly a 680 ns/byte overhead compared to plain C.
+ * For 1-byte files, this library has roughly a 70 ns/byte overhead compared to plain Haskell `IO` code, which has roughly a 895 ns/byte overhead compared to plain C.
  * For larger (> 10 KB) files, this library performs just as good as plain Haskell `IO` code, which has roughly a 0.15 ns/byte overhead compared to plain C.
 
 <sup>†</sup> July 2024; NixOS 22.11; Intel i7-12700K (3.6 GHz, 12 cores); Corsair VENGEANCE LPX DDR4 RAM 64GB (2 x 32GB) 3200MHz; Samsung 970 EVO Plus SSD 2TB (M.2 NVMe).

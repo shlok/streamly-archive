@@ -25,7 +25,7 @@ Creating archives using C program (unless they already exist)...
     Creating archive ./tmp/test_250_10000000.tar... success.
     Creating archive ./tmp/test_500_10000000.tar... success.
     Creating archive ./tmp/test_1000_10000000.tar... success.
-Time taken for creating archives: 0.031399 hours.
+Time taken for creating archives: 0.033602 hours.
 ----------------------------------------
 Measure read performance? (y/N) (automatic yes)
     Reading archive ./tmp/test_2500000_1.tar with C...
@@ -238,4 +238,4 @@ Measure read performance? (y/N) (automatic yes)
         Warming up... 1 done.
         Timing... 1 2 3 4 5 6 7 8 9 10 done.
     Appended results to ./tmp/read.csv
-Time taken for measuring read performance: 0.635985 hours.
+Time taken for measuring read performance: 0.704703 hours.

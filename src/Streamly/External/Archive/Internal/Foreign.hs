@@ -35,60 +35,60 @@ data CArchive
 
 data CEntry
 
-foreign import ccall unsafe "archive.h archive_errno"
+foreign import ccall safe "archive.h archive_errno"
   c_archive_errno :: Ptr CArchive -> IO CInt
 
-foreign import ccall unsafe "archive.h archive_error_string"
+foreign import ccall safe "archive.h archive_error_string"
   c_archive_error_string :: Ptr CArchive -> IO CString
 
-foreign import ccall unsafe "archive.h archive_read_new"
+foreign import ccall safe "archive.h archive_read_new"
   c_archive_read_new :: IO (Ptr CArchive)
 
-foreign import ccall unsafe "archive.h archive_read_support_filter_all"
+foreign import ccall safe "archive.h archive_read_support_filter_all"
   c_archive_read_support_filter_all :: Ptr CArchive -> IO CInt
 
-foreign import ccall unsafe "archive.h archive_read_support_format_all"
+foreign import ccall safe "archive.h archive_read_support_format_all"
   c_archive_read_support_format_all :: Ptr CArchive -> IO CInt
 
-foreign import ccall unsafe "archive.h archive_read_support_format_gnutar"
+foreign import ccall safe "archive.h archive_read_support_format_gnutar"
   c_archive_read_support_format_gnutar :: Ptr CArchive -> IO CInt
 
-foreign import ccall unsafe "archive.h archive_read_open_filename"
+foreign import ccall safe "archive.h archive_read_open_filename"
   c_archive_read_open_filename :: Ptr CArchive -> CString -> CSize -> IO CInt
 
-foreign import ccall unsafe "archive.h archive_read_next_header2"
+foreign import ccall safe "archive.h archive_read_next_header2"
   c_archive_read_next_header2 :: Ptr CArchive -> Ptr CEntry -> IO CInt
 
-foreign import ccall unsafe "archive.h archive_read_data"
+foreign import ccall safe "archive.h archive_read_data"
   -- Todo: Think about la_ssize_t on non-POSIX.
   c_archive_read_data :: Ptr CArchive -> Ptr CChar -> CSize -> IO CSsize
 
-foreign import ccall unsafe "archive.h archive_read_data_block"
+foreign import ccall safe "archive.h archive_read_data_block"
   c_archive_read_data_block :: Ptr CArchive -> Ptr (Ptr CChar) -> Ptr CSize -> Ptr Int64 -> IO CInt
 
-foreign import ccall unsafe "archive.h archive_read_free"
+foreign import ccall safe "archive.h archive_read_free"
   c_archive_read_free :: Ptr CArchive -> IO CInt
 
-foreign import ccall unsafe "archive_entry.h archive_entry_filetype"
+foreign import ccall safe "archive_entry.h archive_entry_filetype"
   c_archive_entry_filetype :: Ptr CEntry -> IO CMode -- Todo: Think about type on non-POSIX.
 
-foreign import ccall unsafe "archive_entry.h archive_entry_new"
+foreign import ccall safe "archive_entry.h archive_entry_new"
   c_archive_entry_new :: IO (Ptr CEntry)
 
 -- Similar to c_free_finalizer from ByteString.
-foreign import ccall unsafe "static archive_entry.h &archive_entry_free"
+foreign import ccall safe "static archive_entry.h &archive_entry_free"
   c_archive_entry_free_finalizer :: FunPtr (Ptr CEntry -> IO ())
 
-foreign import ccall unsafe "archive_entry.h archive_entry_pathname"
+foreign import ccall safe "archive_entry.h archive_entry_pathname"
   c_archive_entry_pathname :: Ptr CEntry -> IO CString
 
-foreign import ccall unsafe "archive_entry.h archive_entry_pathname_utf8"
+foreign import ccall safe "archive_entry.h archive_entry_pathname_utf8"
   c_archive_entry_pathname_utf8 :: Ptr CEntry -> IO CString
 
-foreign import ccall unsafe "archive_entry.h archive_entry_size"
+foreign import ccall safe "archive_entry.h archive_entry_size"
   c_archive_entry_size :: Ptr CEntry -> IO Int64
 
-foreign import ccall unsafe "archive_entry.h archive_entry_size_is_set"
+foreign import ccall safe "archive_entry.h archive_entry_size_is_set"
   c_archive_entry_size_is_set :: Ptr CEntry -> IO CInt
 
 -- Documented libarchive return codes.

@@ -6,6 +6,7 @@ module Streamly.External.Archive.Tests (tests) where
 
 import qualified Codec.Archive.Tar as Tar
 import Codec.Compression.GZip
+import Control.Concurrent.Async
 import Control.Monad
 import Crypto.Random.Entropy
 import Data.Bifunctor
@@ -27,7 +28,6 @@ import System.IO.Temp
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Test.Tasty
-import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
 tests :: [TestTree]
@@ -43,6 +43,8 @@ testTar :: Bool -> TestTree
 testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ monadicIO $ do
   -- Generate a random file system hierarchy.
   hierarchy <- pick $ randomHierarchy "" 4 4 5
+
+  numThreads <- pick $ chooseInt (1, 4)
 
   -- Create a new temporary directory, write our hierarchy into a "files" subdirectory of the
   -- temporary directory, use other libraries to create files.tar (or files.tar.gz), read the file
@@ -76,48 +78,53 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
             )
             (return (Nothing, Nothing, Nothing, Nothing))
 
-    pathsFileTypesSizesAndByteStrings <-
-      S.unfold readArchive archFile
-        & groupByHeader fileFold
-        & fmap (\(mfp, mtyp, msz, mbs) -> (fromJust mfp, fromJust mtyp, msz, mbs))
-        & S.toList
+    pathsFileTypesSizesAndByteStringss <-
+      replicateConcurrently numThreads $
+        S.unfold readArchive archFile
+          & groupByHeader fileFold
+          & fmap (\(mfp, mtyp, msz, mbs) -> (fromJust mfp, fromJust mtyp, msz, mbs))
+          & S.toList
 
-    -- Make the file paths and ByteStrings comparable and compare them.
-    let pathsAndByteStrings_ =
-          sort $ map (first ("files/" ++)) (("", Nothing) : pathsAndByteStrings)
-    let pathAndByteStrings2_ =
-          sort . map (\(x, _, _, y) -> (x, y)) $ pathsFileTypesSizesAndByteStrings
-    let samePathsAndByteStrings = pathsAndByteStrings_ == pathAndByteStrings2_
+    threadResults <- forM pathsFileTypesSizesAndByteStringss $
+      \pathsFileTypesSizesAndByteStrings -> do
+        -- Make the file paths and ByteStrings comparable and compare them.
+        let pathsAndByteStrings_ =
+              sort $ map (first ("files/" ++)) (("", Nothing) : pathsAndByteStrings)
+        let pathAndByteStrings2_ =
+              sort . map (\(x, _, _, y) -> (x, y)) $ pathsFileTypesSizesAndByteStrings
+        let samePathsAndByteStrings = pathsAndByteStrings_ == pathAndByteStrings2_
 
-    -- Check FileType.
-    let fileTypesCorrect =
-          all
-            ( \(fp, typ, _, _) ->
-                if hasTrailingPathSeparator fp
-                  then typ == FileTypeDirectory
-                  else typ == FileTypeRegular
-            )
-            pathsFileTypesSizesAndByteStrings
+        -- Check FileType.
+        let fileTypesCorrect =
+              all
+                ( \(fp, typ, _, _) ->
+                    if hasTrailingPathSeparator fp
+                      then typ == FileTypeDirectory
+                      else typ == FileTypeRegular
+                )
+                pathsFileTypesSizesAndByteStrings
 
-    -- Check header file size.
-    let fileSizeCorrect =
-          all
-            ( \(_, _, msz, mbs) ->
-                case (msz, mbs) of
-                  (Nothing, _) -> False -- The size is always available.
-                  (Just sz, Nothing) -> sz == 0 -- File or directory.
-                  (Just sz, Just bs) -> fromIntegral sz == B.length bs
-            )
-            pathsFileTypesSizesAndByteStrings
+        -- Check header file size.
+        let fileSizeCorrect =
+              all
+                ( \(_, _, msz, mbs) ->
+                    case (msz, mbs) of
+                      (Nothing, _) -> False -- The size is always available.
+                      (Just sz, Nothing) -> sz == 0 -- File or directory.
+                      (Just sz, Just bs) -> fromIntegral sz == B.length bs
+                )
+                pathsFileTypesSizesAndByteStrings
 
-    return $ samePathsAndByteStrings && fileTypesCorrect && fileSizeCorrect
+        return $ samePathsAndByteStrings && fileTypesCorrect && fileSizeCorrect
+
+    return $ and threadResults
 
 -- | Read a fixed sparse file (sparse.tar) using our library and make sure the results are as
 -- expected. (The file was created manually on Linux with "cp --sparse=always" to create the sparse
 -- files and "tar -Scvf" to create the archive. We were unable to do the equivalent thing on macOS
 -- Mojave / APFS.)
 testSparse :: TestTree
-testSparse = testCase "sparse" $ do
+testSparse = testProperty "sparse" $ monadicIO $ do
   let fileFold =
         F.foldlM'
           ( \(mfp, mbs) e ->
@@ -135,22 +142,38 @@ testSparse = testCase "sparse" $ do
           )
           (return (Nothing, Nothing))
 
-  archive <-
-    S.unfold readArchive "test/data/sparse.tar"
-      & groupByHeader fileFold
-      & fmap (\(mfp, mbs) -> (fromJust mfp, fromJust mbs))
-      & S.toList
+  numThreads <- pick $ chooseInt (1, 4)
 
-  assertEqual "" (map fst archive) ["zero", "zeroZero", "zeroAsdf", "asdfZero"]
+  archives <-
+    run $
+      replicateConcurrently numThreads $
+        S.unfold readArchive "test/data/sparse.tar"
+          & groupByHeader fileFold
+          & fmap (\(mfp, mbs) -> (fromJust mfp, fromJust mbs))
+          & S.toList
 
-  let tenMb = 10_000_000
-  let zero = B.replicate tenMb 0
-  let asdf = "asdf"
+  threadResults <- forM archives $ \archive -> do
+    let validPaths = map fst archive == ["zero", "zeroZero", "zeroAsdf", "asdfZero"]
 
-  assertBool "unexpected bytestring (1)" $ snd (head archive) == zero
-  assertBool "unexpected bytestring (2)" $ snd (archive !! 1) == zero `B.append` zero
-  assertBool "unexpected bytestring (3)" $ snd (archive !! 2) == zero `B.append` asdf
-  assertBool "unexpected bytestring (4)" $ snd (archive !! 3) == asdf `B.append` zero
+    let tenMb = 10_000_000
+    let zero = B.replicate tenMb 0
+    let asdf = "asdf"
+
+    let validByteString1 = snd (head archive) == zero
+    let validByteString2 = snd (archive !! 1) == zero `B.append` zero
+    let validByteString3 = snd (archive !! 2) == zero `B.append` asdf
+    let validByteString4 = snd (archive !! 3) == asdf `B.append` zero
+
+    return $
+      and
+        [ validPaths,
+          validByteString1,
+          validByteString2,
+          validByteString3,
+          validByteString4
+        ]
+
+  return $ and threadResults
 
 -- | Writes a given hierarchy of relative paths (created with 'randomHierarchy') to disk in the
 -- specified directory and returns the same hierarchy except with actual ByteStrings instead of
