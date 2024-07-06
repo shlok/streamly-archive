@@ -53,7 +53,7 @@ headerPathNameUtf8 (Header e) = archive_entry_pathname_utf8 e
 headerSize :: Header -> IO (Maybe Int)
 headerSize (Header e) = archive_entry_size e
 
--- | A convenience function for grouping @Either Header ByteString@s, usually obtained with
+-- | A convenience function for grouping @"Either Header ByteString"@s, usually obtained with
 -- 'readArchive', by the headers. The input @Fold@ processes a single entry (a 'Header' followed by
 -- zero or more @ByteString@s).
 {-# INLINE groupByHeader #-}
@@ -73,7 +73,8 @@ groupByHeader itemFold str =
           Right b -> b
       )
 
--- | Creates an unfold with which we can stream data out of the given archive.
+-- | Creates an unfold with which we can stream data out of the given archive. For each entry in the
+-- archive, we get a 'Header' followed by zero or more @ByteString@s containing chunks of file data.
 {-# INLINE readArchive #-}
 readArchive :: (MonadIO m) => Unfold m FilePath (Either Header ByteString)
 readArchive =
