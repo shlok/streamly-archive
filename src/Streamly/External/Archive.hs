@@ -5,7 +5,7 @@
 module Streamly.External.Archive
   ( -- ** Read
     readArchive,
-    groupByHeader,
+    groupByLefts,
 
     -- *** Read options
     ReadOptions,
@@ -57,26 +57,6 @@ headerPathNameUtf8 (Header e) = archive_entry_pathname_utf8 e
 {-# INLINE headerSize #-}
 headerSize :: Header -> IO (Maybe Int)
 headerSize (Header e) = archive_entry_size e
-
--- | A convenience function for grouping @"Either Header ByteString"@s, usually obtained with
--- 'readArchive', by the headers. The input @Fold@ processes a single entry (a 'Header' followed by
--- zero or more @ByteString@s).
-{-# INLINE groupByHeader #-}
-groupByHeader ::
-  (Monad m) =>
-  Fold m (Either Header ByteString) b ->
-  Stream m (Either Header ByteString) ->
-  Stream m b
-groupByHeader itemFold str =
-  str
-    & S.parseMany (P.groupBy (\_ e -> isRight e) itemFold)
-    & fmap
-      ( \case
-          Left _ ->
-            -- groupBy is documented to never fail.
-            error "unexpected parseMany/groupBy error"
-          Right b -> b
-      )
 
 -- | Creates an unfold with which we can stream data out of the given archive.
 --
@@ -152,3 +132,22 @@ _defaultReadOptions =
 -- By default, all entries are included with unaltered headers.
 mapHeaderMaybe :: (Header -> m (Maybe a)) -> ReadOptions m Header -> ReadOptions m a
 mapHeaderMaybe x o = o {_mapHeaderMaybe = x}
+
+-- | A utility function for grouping @Either@s by the @Left@s. The input @Fold@ processes a single
+-- @Left@ followed by any subsequent (zero or more) @Right@s.
+{-# INLINE groupByLefts #-}
+groupByLefts ::
+  (Monad m) =>
+  Fold m (Either a b) c ->
+  Stream m (Either a b) ->
+  Stream m c
+groupByLefts itemFold str =
+  str
+    & S.parseMany (P.groupBy (\_ e -> isRight e) itemFold)
+    & fmap
+      ( \case
+          Left _ ->
+            -- groupBy is documented to never fail.
+            error "unexpected parseMany/groupBy error"
+          Right c -> c
+      )

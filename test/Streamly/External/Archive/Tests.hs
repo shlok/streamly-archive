@@ -107,7 +107,7 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
                 id,
             archFile
           )
-          & groupByHeader fileFold
+          & groupByLefts fileFold
           & fmap (\(mfp, mtyp, msz, mbs) -> (fromJust mfp, fromJust mtyp, msz, mbs))
           & S.toList
 
@@ -178,7 +178,7 @@ testSparse = testProperty "sparse" $ monadicIO $ do
     run $
       replicateConcurrently numThreads $
         S.unfold readArchive (id, "test/data/sparse.tar")
-          & groupByHeader fileFold
+          & groupByLefts fileFold
           & fmap (\(mfp, mbs) -> (fromJust mfp, fromJust mbs))
           & S.toList
 
