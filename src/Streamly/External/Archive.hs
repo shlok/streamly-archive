@@ -49,6 +49,7 @@ headerPathName (Header e) = archive_entry_pathname e
 headerPathNameUtf8 :: Header -> IO (Maybe ByteString)
 headerPathNameUtf8 (Header e) = archive_entry_pathname_utf8 e
 
+-- | Returns the file size of the entry, if it has been set; returns 'Nothing' otherwise.
 {-# INLINE headerSize #-}
 headerSize :: Header -> IO (Maybe Int)
 headerSize (Header e) = archive_entry_size e
