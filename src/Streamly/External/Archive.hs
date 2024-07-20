@@ -7,6 +7,10 @@ module Streamly.External.Archive
     readArchive,
     groupByHeader,
 
+    -- *** Read options
+    ReadOptions,
+    mapHeaderMaybe,
+
     -- ** Header
     Header,
     FileType (..),
@@ -19,15 +23,15 @@ where
 
 import Control.Exception
 import Control.Monad.IO.Class
-import Data.ByteString
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import Data.Either
 import Data.Function
 import Foreign
 import Foreign.C.Types
-import Streamly.Data.Fold
+import Streamly.Data.Fold (Fold)
 import qualified Streamly.Data.Parser as P
-import Streamly.Data.Stream.Prelude
+import Streamly.Data.Stream.Prelude (Stream)
 import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.Data.Unfold
 import Streamly.External.Archive.Internal.Foreign
@@ -74,13 +78,19 @@ groupByHeader itemFold str =
           Right b -> b
       )
 
--- | Creates an unfold with which we can stream data out of the given archive. For each entry in the
--- archive, we get a 'Header' followed by zero or more @ByteString@s containing chunks of file data.
+-- | Creates an unfold with which we can stream data out of the given archive.
+--
+-- By default (with 'id' as the read options modifier), we get for each entry in the archive a
+-- 'Header' followed by zero or more @ByteString@s containing chunks of file data.
+--
+-- To modify the read options, one can use function composition.
 {-# INLINE readArchive #-}
-readArchive :: (MonadIO m) => Unfold m FilePath (Either Header ByteString)
+readArchive ::
+  (MonadIO m) =>
+  Unfold m (ReadOptions m Header -> ReadOptions m a, FilePath) (Either a ByteString)
 readArchive =
   U.Unfold
-    ( \(arch, buf, sz, offs, pos, ref, readHeader) ->
+    ( \(ropts, arch, buf, sz, offs, pos, ref, readHeader) ->
         if readHeader
           then do
             me <- liftIO $ archive_read_next_header arch
@@ -89,7 +99,11 @@ readArchive =
                 liftIO $ runIOFinalizer ref
                 return U.Stop
               Just e -> do
-                return $ U.Yield (Left $ Header e) (arch, buf, sz, offs, 0, ref, False)
+                let hdr = Header e
+                m <- _mapHeaderMaybe ropts hdr
+                return $ case m of
+                  Nothing -> U.Skip (ropts, arch, buf, sz, offs, 0, ref, True)
+                  Just a -> U.Yield (Left a) (ropts, arch, buf, sz, offs, 0, ref, False)
           else do
             (bs, done) <- liftIO $ archive_read_data_block arch buf sz offs pos
             return $
@@ -97,10 +111,10 @@ readArchive =
                 then
                   U.Yield
                     (Right bs)
-                    (arch, buf, sz, offs, pos + fromIntegral (B.length bs), ref, done)
-                else U.Skip (arch, buf, sz, offs, pos, ref, done)
+                    (ropts, arch, buf, sz, offs, pos + fromIntegral (B.length bs), ref, done)
+                else U.Skip (ropts, arch, buf, sz, offs, pos, ref, done)
     )
-    ( \fp -> do
+    ( \(modifier, fp) -> do
         (arch, buf, sz, offs, ref) <- liftIO . mask_ $ do
           arch <- liftIO archive_read_new
           buf :: Ptr (Ptr CChar) <- liftIO malloc
@@ -111,5 +125,30 @@ readArchive =
         liftIO $ archive_read_support_filter_all arch
         liftIO $ archive_read_support_format_all arch
         liftIO $ archive_read_open_filename arch fp
-        return (arch, buf, sz, offs, 0, ref, True)
+
+        -- + We ended up with functions instead of records to avoid an error about an ambiguous
+        --   monad type for defaultReadOptions when the user sets the headerFilter record.
+        -- + (A dummy Proxy record worked too, but partially exporting records breaks Haddock.)
+        let ropts = modifier _defaultReadOptions
+
+        return (ropts, arch, buf, sz, offs, 0, ref, True)
     )
+
+newtype ReadOptions m a = ReadOptions
+  { _mapHeaderMaybe :: Header -> m (Maybe a)
+  }
+
+_defaultReadOptions :: (Monad m) => ReadOptions m Header
+_defaultReadOptions =
+  ReadOptions
+    { _mapHeaderMaybe = return . Just
+    }
+
+-- | If this returns @Just@ for a header, that header (mapped to a different value if desired) and
+-- any following @ByteString@ chunks are included in the 'readArchive' unfold. If this returns
+-- @Nothing@ for a header, that header and any following @ByteString@ chunks are excluded from the
+-- 'readArchive' unfold.
+--
+-- By default, all entries are included with unaltered headers.
+mapHeaderMaybe :: (Header -> m (Maybe a)) -> ReadOptions m Header -> ReadOptions m a
+mapHeaderMaybe x o = o {_mapHeaderMaybe = x}

@@ -1,5 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 
 module Streamly.External.Archive.Tests (tests) where
@@ -16,8 +17,10 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as LB
 import Data.Char
 import Data.Function
+import Data.Functor
 import Data.List
 import Data.Maybe
+import qualified Data.Set as Set
 import qualified Streamly.Data.Fold as F
 import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.External.Archive
@@ -41,10 +44,18 @@ tests =
 -- using our library, and check if the results are as expected.
 testTar :: Bool -> TestTree
 testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ monadicIO $ do
-  -- Generate a random file system hierarchy.
-  hierarchy <- pick $ randomHierarchy "" 4 4 5
+  -- Generate a random file system hierarchy for writing to disk.
+  hierarchyToWrite <- pick $ randomHierarchy "" 4 4 5
 
   numThreads <- pick $ chooseInt (1, 4)
+
+  -- Of the hierarchy we wrote, sometimes we only read some of them back.
+  readSome :: Bool <- pick arbitrary
+  readSomePaths <-
+    pick $
+      sublistOf hierarchyToWrite
+        <&> Set.fromList
+          . map (("files/" ++) . fst) -- Make comparable to what our library reads back.
 
   -- Create a new temporary directory, write our hierarchy into a "files" subdirectory of the
   -- temporary directory, use other libraries to create files.tar (or files.tar.gz), read the file
@@ -52,7 +63,7 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
   run . withSystemTempDirectory "archive-streaming-testZip" $ \tmpDir -> do
     let filesDir = joinPath [tmpDir, "files"]
     createDirectoryIfMissing True filesDir
-    pathsAndByteStrings <- writeHierarchy filesDir hierarchy
+    writePathsAndByteStrings <- writeHierarchy filesDir hierarchyToWrite
 
     let archFile = joinPath [tmpDir, "files.tar" ++ (if gz then ".gz" else "")]
     LB.writeFile archFile . (if gz then compress else id) . Tar.write =<< Tar.pack tmpDir ["files"]
@@ -78,21 +89,40 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
             )
             (return (Nothing, Nothing, Nothing, Nothing))
 
-    pathsFileTypesSizesAndByteStringss <-
+    readPathsFileTypesSizesAndByteStringss <-
       replicateConcurrently numThreads $
-        S.unfold readArchive archFile
+        S.unfold
+          readArchive
+          ( if readSome
+              then
+                mapHeaderMaybe
+                  ( \h -> do
+                      p <- fromJust <$> headerPathName h
+                      return $
+                        if BC.unpack p `Set.member` readSomePaths
+                          then Just h
+                          else Nothing
+                  )
+              else
+                id,
+            archFile
+          )
           & groupByHeader fileFold
           & fmap (\(mfp, mtyp, msz, mbs) -> (fromJust mfp, fromJust mtyp, msz, mbs))
           & S.toList
 
-    threadResults <- forM pathsFileTypesSizesAndByteStringss $
-      \pathsFileTypesSizesAndByteStrings -> do
-        -- Make the file paths and ByteStrings comparable and compare them.
-        let pathsAndByteStrings_ =
-              sort $ map (first ("files/" ++)) (("", Nothing) : pathsAndByteStrings)
-        let pathAndByteStrings2_ =
-              sort . map (\(x, _, _, y) -> (x, y)) $ pathsFileTypesSizesAndByteStrings
-        let samePathsAndByteStrings = pathsAndByteStrings_ == pathAndByteStrings2_
+    threadResults <- forM readPathsFileTypesSizesAndByteStringss $
+      \readPathsFileTypesSizesAndByteStrings -> do
+        let readPathAndByteStrings =
+              sort . map (\(x, _, _, y) -> (x, y)) $ readPathsFileTypesSizesAndByteStrings
+
+        let writePathsAndByteStrings2 =
+              sort
+                . (if readSome then filter (\(x, _) -> x `Set.member` readSomePaths) else id)
+                . map (first ("files/" ++)) -- Make comparable to what our library reads back.
+                $ ("", Nothing) : writePathsAndByteStrings
+
+        let samePathsAndByteStrings = writePathsAndByteStrings2 == readPathAndByteStrings
 
         -- Check FileType.
         let fileTypesCorrect =
@@ -102,7 +132,7 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
                       then typ == FileTypeDirectory
                       else typ == FileTypeRegular
                 )
-                pathsFileTypesSizesAndByteStrings
+                readPathsFileTypesSizesAndByteStrings
 
         -- Check header file size.
         let fileSizeCorrect =
@@ -113,7 +143,7 @@ testTar gz = testProperty ("tar (" ++ (if gz then "gz" else "no gz") ++ ")") $ m
                       (Just sz, Nothing) -> sz == 0 -- File or directory.
                       (Just sz, Just bs) -> fromIntegral sz == B.length bs
                 )
-                pathsFileTypesSizesAndByteStrings
+                readPathsFileTypesSizesAndByteStrings
 
         return $ samePathsAndByteStrings && fileTypesCorrect && fileSizeCorrect
 
@@ -147,7 +177,7 @@ testSparse = testProperty "sparse" $ monadicIO $ do
   archives <-
     run $
       replicateConcurrently numThreads $
-        S.unfold readArchive "test/data/sparse.tar"
+        S.unfold readArchive (id, "test/data/sparse.tar")
           & groupByHeader fileFold
           & fmap (\(mfp, mbs) -> (fromJust mfp, fromJust mbs))
           & S.toList

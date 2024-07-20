@@ -38,7 +38,7 @@ dispatch ["read", path] = do
           (\(_, _, x, y) -> return (x, y))
 
   (totalFileSize, fileCount) <-
-    S.unfold readArchive path
+    S.unfold readArchive (id, path)
       & S.fold fol
 
   putStrLn $ "Total filesize: " ++ show totalFileSize
