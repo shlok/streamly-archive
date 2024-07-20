@@ -19,8 +19,10 @@ import Data.Char
 import Data.Function
 import Data.Functor
 import Data.List
+import Data.List.Split
 import Data.Maybe
 import qualified Data.Set as Set
+import Data.Word
 import qualified Streamly.Data.Fold as F
 import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.External.Archive
@@ -37,7 +39,8 @@ tests :: [TestTree]
 tests =
   [ testTar False,
     testTar True,
-    testSparse
+    testSparse,
+    testChunkOnAndChunkOnFold
   ]
 
 -- | Use other libraries to create a tar (or tar.gz) file containing random data, read the file back
@@ -204,6 +207,81 @@ testSparse = testProperty "sparse" $ monadicIO $ do
         ]
 
   return $ and threadResults
+
+testChunkOnAndChunkOnFold :: TestTree
+testChunkOnAndChunkOnFold = testProperty "chunkOn/chunkOnFold" $ monadicIO $ do
+  -- Although we say “lines,” our splitWd is an arbitrary non-printable ASCII character.
+  splitWd :: Word8 <- pick $ elements [0 .. 31]
+
+  let maxLineLen = 50
+      maxChunkSz = 100
+
+      genLine = do
+        lineLen <- choose (0, maxLineLen)
+        B.pack
+          <$>
+          -- For easier debug visualization, lines have only a to z.
+          replicateM lineLen (elements [97 .. 122])
+
+      genLines = do
+        numLines <- pick $ choose (0, 10)
+        if numLines <= 2
+          then
+            replicateM numLines $ pick genLine
+          else do
+            lines' <- replicateM (numLines - 2) $ pick genLine
+            -- Make it a bit more likely we begin/end with an empty line
+            begLine <- pick $ frequency [(5, return ""), (95, genLine)]
+            endLine <- pick $ frequency [(5, return ""), (95, genLine)]
+            return $ [begLine] ++ lines' ++ [endLine]
+
+  chunkSz <- pick $ choose (1, maxChunkSz)
+
+  let linesToChunks [""] = [""] -- Special case.
+      linesToChunks lns =
+        map B.pack
+          . chunksOf chunkSz
+          . B.unpack
+          -- ["line1", "\n" , "line2"] -> "line1\nline2"
+          . B.concat
+          -- ["line1", "line2"] -> ["line1", "\n" , "line2"]
+          . intersperse (B.singleton splitWd)
+          $ lns
+
+  -- Most users of streamly-archive will probably have none of these, but we test this case
+  -- nonetheless.
+  linesBeforeFirstFile <- genLines
+
+  numFiles <- pick $ choose (0, 5)
+
+  files <- replicateM numFiles $ do
+    fileLines <- genLines
+    fileName :: Int <- pick arbitrary
+    return (fileName, fileLines)
+
+  let chunks =
+        map Right (linesToChunks linesBeforeFirstFile)
+          ++ concatMap
+            (\(fileName, fileLines) -> Left fileName : map Right (linesToChunks fileLines))
+            files
+      expectedChunkOnResult =
+        map Right linesBeforeFirstFile
+          ++ concatMap
+            (\(fileName, fileLines) -> Left fileName : map Right fileLines)
+            files
+
+  chunkOnResult <-
+    S.fromList chunks
+      & chunkOn splitWd
+      & S.fold F.toList
+
+  chunkOnFoldResult <-
+    S.fromList chunks
+      & S.fold (chunkOnFold splitWd F.toList)
+
+  return $
+    chunkOnResult == expectedChunkOnResult
+      && chunkOnFoldResult == expectedChunkOnResult
 
 -- | Writes a given hierarchy of relative paths (created with 'randomHierarchy') to disk in the
 -- specified directory and returns the same hierarchy except with actual ByteStrings instead of

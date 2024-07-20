@@ -1,15 +1,23 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Streamly.External.Archive
   ( -- ** Read
     readArchive,
-    groupByLefts,
 
     -- *** Read options
     ReadOptions,
     mapHeaderMaybe,
+
+    -- ** Utility functions
+
+    -- | Various utility functions that some might find useful.
+    groupByLefts,
+    chunkOn,
+    chunkOnFold,
 
     -- ** Header
     Header,
@@ -26,7 +34,9 @@ import Control.Monad.IO.Class
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import Data.Either
+import Data.Foldable
 import Data.Function
+import qualified Data.Sequence as Seq
 import Foreign
 import Foreign.C.Types
 import Streamly.Data.Fold (Fold)
@@ -35,7 +45,9 @@ import Streamly.Data.Stream.Prelude (Stream)
 import qualified Streamly.Data.Stream.Prelude as S
 import Streamly.Data.Unfold
 import Streamly.External.Archive.Internal.Foreign
+import qualified Streamly.Internal.Data.Fold as F
 import Streamly.Internal.Data.IOFinalizer
+import qualified Streamly.Internal.Data.Stream as S
 import qualified Streamly.Internal.Data.Unfold as U
 
 -- | Header information for an entry in the archive.
@@ -151,3 +163,180 @@ groupByLefts itemFold str =
             error "unexpected parseMany/groupBy error"
           Right c -> c
       )
+
+-- | The state of the chunkOn stream.
+data ChunkOnState_ is h
+  = -- | The initial state; or a header is done being yielded.
+    COInitOrYieldHeader_
+  | -- | A bytestring not containing splitWd is being built up.
+    COResidue_ !ByteString
+  | -- | Chunks are being processed.
+    COProcessChunks_ ![ByteString] !ByteString
+  | -- | A stop has been asked for.
+    COStop_
+  | -- | A header yield has been asked for.
+    COYieldHeader_ !h !is
+
+-- | Chunks up the bytestrings following each @Left@ by the given word, discarding the given word.
+-- (For instance, the word could be @10@ (newline), which gives us lines as the chunks.) The
+-- bytestrings in the resulting stream are the desired chunks.
+{-# INLINE chunkOn #-}
+chunkOn ::
+  (Monad m) =>
+  Word8 ->
+  Stream m (Either a ByteString) ->
+  Stream m (Either a ByteString)
+chunkOn splitWd (S.Stream istep isinit) =
+  -- "i": input.
+  S.Stream step' (isinit, COInitOrYieldHeader_)
+  where
+    -- A utility function to obtain (chunks, next residue) from the previous residue and the latest
+    -- incoming bytestring.
+    {-# INLINE toChunks #-}
+    toChunks residue newbs =
+      -- Non-empty newbs expected.
+      let tentativeChunks = Seq.fromList . B.split splitWd $ residue `B.append` newbs
+       in case tentativeChunks of
+            Seq.Empty -> (Seq.empty, "")
+            init' Seq.:|> last' ->
+              -- Note: This logic works also when newbs ends with splitWd because then the last
+              -- chunk is the empty bytestring.
+              (init', last')
+
+    -- Processes chunks obtained with toChunks.
+    {-# INLINE processChunks #-}
+    processChunks is [] residue =
+      return $ S.Skip (is, COResidue_ residue)
+    processChunks is (chunk : chunks) residue =
+      return $ S.Yield (Right chunk) (is, COProcessChunks_ chunks residue)
+
+    {-# INLINE step' #-}
+    -- "is": state of the input stream.
+    -- "gst": "global" state? (Inspired by '_compactOnByteCustom' in streamly-0.10.1.)
+    step' gst (is, s) = case s of
+      COInitOrYieldHeader_ -> do
+        istep' <- istep gst is
+        case istep' of
+          S.Stop -> return S.Stop
+          S.Skip is' -> return $ S.Skip (is', COInitOrYieldHeader_)
+          S.Yield e is' -> case e of
+            Left hdr -> return $ S.Yield (Left hdr) (is', COInitOrYieldHeader_)
+            Right newbs -> do
+              -- Note: In the initial case (and not just the yield header case), this is possible.
+              -- Although a bytestring appearing initially without any preceding header is not what
+              -- we have in mind for streamly-archive, we want this function to focus only on the
+              -- bytestring splitting.
+              let (chunks, residue') = toChunks "" newbs
+              return $ S.Skip (is', COProcessChunks_ (toList chunks) residue')
+      COResidue_ !residue -> do
+        istep' <- istep gst is
+        case istep' of
+          S.Stop -> return $ S.Yield (Right residue) (is, COStop_)
+          S.Skip is' -> return $ S.Skip (is', COResidue_ residue)
+          S.Yield e is' -> case e of
+            Left hdr -> return $ S.Yield (Right residue) (is', COYieldHeader_ hdr is')
+            Right newbs -> do
+              let (chunks, residue') = toChunks residue newbs
+              return $ S.Skip (is', COProcessChunks_ (toList chunks) residue')
+      COStop_ -> return S.Stop
+      COYieldHeader_ !hdr !is' -> return $ S.Yield (Left hdr) (is', COInitOrYieldHeader_)
+      COProcessChunks_ !chunks !residue ->
+        processChunks is chunks residue
+
+-- | The state of the outer 'chunkOnFold' fold.
+data ChunkOnFoldState_
+  = -- | The initialization of the fold is complete. This state occurs only once (in the beginning).
+    Init_
+  | -- | The processing of a header is complete.
+    Header_
+  | -- | The processing of chunks is complete, and a residue (possibly empty) has been made
+    -- available.
+    Chunks_ !ByteString
+
+-- | Chunks up the bytestrings following each @Left@ by the given word, discarding the given word.
+-- (For instance, the word could be @10@ (newline), which gives us lines as the chunks.) The
+-- bytestrings in the provided fold are the desired chunks.
+{-# INLINE chunkOnFold #-}
+chunkOnFold ::
+  (Monad m) =>
+  Word8 ->
+  Fold m (Either a ByteString) b ->
+  Fold m (Either a ByteString) b
+chunkOnFold splitWd (F.Fold chstep chinit chextr chfinal) =
+  -- "ch": chunk.
+  let -- A utility function to consume all the chunks available in the same iteration.
+      {-# INLINE go #-}
+      go chs [] = return $ F.Partial chs -- "chs": state of the chunk fold.
+      go chs (chbs : chbss) = do
+        chstep' <- chstep chs (Right chbs)
+        case chstep' of
+          F.Done a -> return $ F.Done a
+          F.Partial chs' -> go chs' chbss
+      -- A utility function to obtain (chunks, next residue) from the previous residue and the
+      -- latest incoming bytestring.
+      {-# INLINE toChunks #-}
+      toChunks residue newbs =
+        -- Non-empty newbs expected.
+        let tentativeChunks = Seq.fromList . B.split splitWd $ residue `B.append` newbs
+         in case tentativeChunks of
+              Seq.Empty -> (Seq.empty, "")
+              init' Seq.:|> last' ->
+                -- Note: This logic works also when newbs ends with splitWd because then the last
+                -- chunk is the empty bytestring.
+                (init', last')
+
+      {-# INLINE processHeader #-}
+      processHeader chs hdr = do
+        chstep' <- chstep chs (Left hdr)
+        case chstep' of
+          F.Done a -> return $ F.Done a
+          F.Partial chs' -> return $ F.Partial (chs', Header_)
+      {-# INLINE processBytestring #-}
+      processBytestring chs residue chbs = do
+        let (chunks, residue') = toChunks residue chbs
+        chstep' <- go chs (toList chunks)
+        case chstep' of
+          F.Done a -> return $ F.Done a
+          F.Partial chs' -> return $ F.Partial (chs', Chunks_ residue')
+   in -- Note: If a file ends with "\n", we want to include the last empty line.
+      F.Fold
+        ( \(chs, s) e -> case s of
+            Init_ -> case e of
+              Left hdr -> do
+                processHeader chs hdr
+              Right newbs ->
+                -- This case is possible. Although a bytestring appearing initially without any
+                -- preceding header is not what we have in mind for streamly-archive, we want this
+                -- fold to focus only on the bytestring splitting.
+                processBytestring chs "" newbs
+            Header_ -> case e of
+              Left hdr -> do
+                -- No bytestrings followed the previous header.
+                processHeader chs hdr
+              Right newbs ->
+                processBytestring chs "" newbs
+            Chunks_ residue -> case e of
+              Left hdr -> do
+                chstep' <- chstep chs (Right residue)
+                case chstep' of
+                  F.Done a -> return $ F.Done a
+                  F.Partial chs' -> do
+                    processHeader chs' hdr
+              Right newbs ->
+                processBytestring chs residue newbs
+        )
+        ( do
+            chstep' <- chinit
+            case chstep' of
+              F.Done a -> return $ F.Done a
+              F.Partial chs' -> return $ F.Partial (chs', Init_)
+        )
+        (\(chs, _) -> chextr chs)
+        ( \(chs, s) -> case s of
+            Chunks_ residue -> do
+              chstep' <- chstep chs (Right residue)
+              case chstep' of
+                F.Done a -> return a
+                F.Partial chs' -> chfinal chs'
+            _ -> chfinal chs
+        )
