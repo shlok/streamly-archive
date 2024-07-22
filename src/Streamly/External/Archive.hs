@@ -145,8 +145,8 @@ _defaultReadOptions =
 mapHeaderMaybe :: (Header -> m (Maybe a)) -> ReadOptions m Header -> ReadOptions m a
 mapHeaderMaybe x o = o {_mapHeaderMaybe = x}
 
--- | A utility function for grouping @Either@s by the @Left@s. The input @Fold@ processes a single
--- @Left@ followed by any subsequent (zero or more) @Right@s.
+-- | Groups a stream of @Either@s by the @Left@s. The provided @Fold@ processes a single @Left@
+-- followed by any subsequent (zero or more) @Right@s.
 {-# INLINE groupByLefts #-}
 groupByLefts ::
   (Monad m) =>
