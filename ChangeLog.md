@@ -2,6 +2,9 @@
 
 * Updated for Streamly 0.10.0.
 * Eliminated the `Void` seed for `readArchive`.
+* Added the ability to map over headers and filter out entries during `readArchive`.
+* Generalized `groupByHeader` to `groupByLefts`.
+* Added utility functions: `eitherByLeft`, `chunkOn`, `chunkOnFold`.
 
 ## 0.2.0
 
