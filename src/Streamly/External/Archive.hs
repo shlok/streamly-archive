@@ -15,7 +15,7 @@ module Streamly.External.Archive
     -- ** Utility functions
 
     -- | Various utility functions that some might find useful.
-    groupByLefts,
+    groupByLeft,
     eitherByLeft,
     chunkOn,
     chunkOnFold,
@@ -148,13 +148,13 @@ mapHeaderMaybe x o = o {_mapHeaderMaybe = x}
 
 -- | Groups a stream of @Either@s by the @Left@s. The provided @Fold@ processes a single @Left@
 -- followed by any subsequent (zero or more) @Right@s.
-{-# INLINE groupByLefts #-}
-groupByLefts ::
+{-# INLINE groupByLeft #-}
+groupByLeft ::
   (Monad m) =>
   Fold m (Either a b) c ->
   Stream m (Either a b) ->
   Stream m c
-groupByLefts itemFold str =
+groupByLeft itemFold str =
   str
     & S.parseMany (P.groupBy (\_ e -> isRight e) itemFold)
     & fmap

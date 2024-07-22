@@ -42,6 +42,6 @@ main = do
   -- Execute the stream, grouping at the headers (the Lefts) using the above
   -- fold, and output the paths and SHA-256 hashes along the way.
   S.unfold readArchive (id, "/path/to/archive.tar.gz")
-    & groupByLefts entryFold
+    & groupByLeft entryFold
     & S.mapM print
     & S.fold F.drain
