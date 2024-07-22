@@ -16,6 +16,7 @@ module Streamly.External.Archive
 
     -- | Various utility functions that some might find useful.
     groupByLefts,
+    eitherByLeft,
     chunkOn,
     chunkOnFold,
 
@@ -162,6 +163,27 @@ groupByLefts itemFold str =
             -- groupBy is documented to never fail.
             error "unexpected parseMany/groupBy error"
           Right c -> c
+      )
+
+-- | Associates each @Right@ in a stream with the latest @Left@ that came before it.
+--
+-- >>> l = [Right 10, Left "a", Right 1, Right 2, Left "b", Left "c", Right 20]
+-- >>> S.fold F.toList . eitherByLeft . S.fromList $ l
+-- [("a",1),("a",2),("c",20)]
+eitherByLeft :: (Monad m) => Stream m (Either a b) -> Stream m (a, b)
+eitherByLeft s =
+  S.scanl'
+    ( \(curra, _) e ->
+        case e of
+          Left newa -> (Just newa, Nothing)
+          Right newb -> (curra, Just newb)
+    )
+    (Nothing, Nothing)
+    s
+    & S.mapMaybe
+      ( \(ma, mb) -> case (ma, mb) of
+          (Just a, Just b) -> Just (a, b)
+          _ -> Nothing
       )
 
 -- | The state of the chunkOn stream.

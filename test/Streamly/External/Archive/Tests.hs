@@ -33,6 +33,7 @@ import System.IO.Temp
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Test.Tasty
+import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
 tests :: [TestTree]
@@ -40,7 +41,8 @@ tests =
   [ testTar False,
     testTar True,
     testSparse,
-    testChunkOnAndChunkOnFold
+    testChunkOnAndChunkOnFold,
+    testEitherByLeft
   ]
 
 -- | Use other libraries to create a tar (or tar.gz) file containing random data, read the file back
@@ -282,6 +284,16 @@ testChunkOnAndChunkOnFold = testProperty "chunkOn/chunkOnFold" $ monadicIO $ do
   return $
     chunkOnResult == expectedChunkOnResult
       && chunkOnFoldResult == expectedChunkOnResult
+
+testEitherByLeft :: TestTree
+testEitherByLeft = testCase "eitherByLeft" $ do
+  let getRes = S.fold F.toList . eitherByLeft . S.fromList
+
+  res1 <- getRes [Right 10, Left "a", Right 1, Right 2, Left "b", Left "c", Right 20]
+  res1 @?= ([("a", 1), ("a", 2), ("c", 20)] :: [(String, Int)])
+
+  res2 <- getRes []
+  res2 @?= ([] :: [(String, Int)])
 
 -- | Writes a given hierarchy of relative paths (created with 'randomHierarchy') to disk in the
 -- specified directory and returns the same hierarchy except with actual ByteStrings instead of
