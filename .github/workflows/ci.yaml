@@ -1,5 +1,8 @@
 # Based on https://markkarpov.com/post/github-actions-for-haskell-ci.html.
 
+# For now, we skip macOS builds on GitHub; too slow builders, and issues with finding Homebrew
+# libraries. (It builds successfully on macOS on Garnix anyway.)
+
 name: CI
 on:
   push:
@@ -21,16 +24,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["ubuntu-latest", "macos-13"]
+        os: ["ubuntu-latest"] # Skip macOS; see above.
         cabal: ["3.10.3.0"]
-        ghc: ["9.2.8", "9.6.5"]
+        ghc: ["9.6.5"]
       fail-fast: false
     name: cabal ${{ matrix.cabal }} - ${{ matrix.os }}, ${{ matrix.ghc }}
     env:
       CONFIG: "--enable-tests --enable-benchmarks"
     steps:
-      - uses: actions/checkout@v3.5.3
-      - uses: haskell/actions/setup@v2.3.6
+      - uses: actions/checkout@v5.0.0
+      - uses: haskell/actions/setup@v2.4.7
         id: setup-haskell-cabal
         with:
           ghc-version: ${{ matrix.ghc }}
@@ -41,7 +44,7 @@ jobs:
         if: contains(matrix.os, 'macos')
       - run: cabal v2-update
       - run: cabal v2-freeze $CONFIG
-      - uses: actions/cache@v3.3.1
+      - uses: actions/cache@v4.3.0
         with:
           path: |
             ~/.cabal/store
@@ -57,13 +60,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["ubuntu-latest", "macos-13"]
-        stack: ["2.15.7"]
+        os: ["ubuntu-latest"] # Skip macOS; see above.
+        stack: ["3.7.1"]
       fail-fast: false
     name: stack ${{ matrix.stack }} - ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3.5.3
-      - uses: haskell/actions/setup@v2.3.6
+      - uses: actions/checkout@v5.0.0
+      - uses: haskell/actions/setup@v2.4.7
         id: setup-haskell-stack
         with:
           enable-stack: true
@@ -72,7 +75,7 @@ jobs:
         if: contains(matrix.os, 'ubuntu')
       - run: brew install libarchive
         if: contains(matrix.os, 'macos')
-      - uses: actions/cache@v3.3.1
+      - uses: actions/cache@v4.3.0
         with:
           path: |
             ~/.stack

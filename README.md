@@ -1,7 +1,8 @@
 # streamly-archive
 
 [![Hackage](https://img.shields.io/hackage/v/streamly-archive.svg?style=flat)](https://hackage.haskell.org/package/streamly-archive)
-![CI](https://github.com/shlok/streamly-archive/workflows/CI/badge.svg?branch=master)
+[![CI](https://github.com/shlok/streamly-archive/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/shlok/streamly-archive/actions/workflows/ci.yaml)
+[![built with garnix](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fshlok%2Fstreamly-archive%3Fbranch%3Dmaster)](https://garnix.io/repo/shlok/streamly-archive)
 
 Stream data from archives (tar, tar.gz, zip, or any other format [supported by libarchive](https://github.com/libarchive/libarchive/wiki/LibarchiveFormats)) using the Haskell [streamly](https://hackage.haskell.org/package/streamly) library.
 
