@@ -9,7 +9,7 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        ghcVersion = "965";
+        ghcVersion = "9103";
         packageName = "streamly-archive";
         config = {};
 
@@ -20,26 +20,20 @@
             in {
               myHaskellPkgs = haskellPkgs.override {
                 overrides = hfinal: hprev: {
-                  ${packageName} =
-                    hfinal.callCabal2nix packageName ./. {
-                      archive = final.pkgs.libarchive;
-                    };
+                  ${packageName} = hfinal.callCabal2nix "${packageName}" ./. {
+                    archive = final.pkgs.libarchive;
+                  };
 
-                  # nixpkgs-unstable 4a4ecb0ab415c9fccfb005567a215e6a9564cdf5 (2024-06-03).
-                  # We want Ormolu 0.7.4 for better commenting within if-else.
-                  ormolu = hfinal.ormolu_0_7_4_0;
-                  # This version of Ormolu requires ghc-lib-parser 9.8.x.
-                  ghc-lib-parser = hfinal.ghc-lib-parser_9_8_2_20240223;
-                  # Since we specify haskell-language-server below, we also need to bring a few more
-                  # things in align with the same ghc-lib-parser. (The fourmolu and stylish-haskell
-                  # lines should be avoidable by disabling those flags in haskell-language-server,
-                  # but currently this seems non-trivial; see
-                  # https://github.com/srid/haskell-flake/issues/245; see also
-                  # configuration-ghc-9.2.x.nix in nixpkgs.)
-                  fourmolu = hfinal.fourmolu_0_15_0_0;
-                  ghc-lib-parser-ex = hfinal.ghc-lib-parser-ex_9_8_0_2;
-                  hlint = hfinal.hlint_3_8;
-                  stylish-haskell = hfinal.stylish-haskell_0_14_6_0;
+                  streamly = hfinal.callHackageDirect {
+                    pkg = "streamly";
+                    ver = "0.11.1";
+                    sha256 = "sha256-4h1MwaN7eXMvzXKyjggIjjR3BlsGzl4vfCO7VBGGvrc=";
+                  } {};
+                  streamly-core = hfinal.callHackageDirect {
+                    pkg = "streamly-core";
+                    ver = "0.3.1";
+                    sha256 = "sha256-k9h+I74GNsluf55hJFDZiLwEO2x9moFvtCarCeCpaa4=";
+                  } {};
                 };
               };
 
@@ -53,8 +47,7 @@
                   final.myHaskellPkgs.ormolu
                 ];
 
-                # Without this, "cabal repl" shows "libarchive.so: cannot open
-                # shared...". See also:
+                # Without this, "cabal repl" shows "libarchive.so: cannot open shared...". See also:
                 # https://discourse.nixos.org/t/shared-libraries-error-with-cabal-repl-in-nix-shell/8921
                 shellHook = ''
                   export LD_LIBRARY_PATH=${final.pkgs.libarchive.lib}/lib
