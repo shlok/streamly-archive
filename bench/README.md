@@ -10,7 +10,6 @@ These programs are currently undocumented, apart from the brief usage descriptio
 
 ## Running benchmarks
 
-* Note (July 2024): We have only tested this on NixOS 22.11. It should work fine on other systems (e.g., Debian Linux); feel free to try.
 * If you are on NixOS, please make sure you have enabled Nix Flakes.
 * If you are on a non-NixOS system, please make sure you have installed [Nix](https://nixos.org) and enabled Nix Flakes.
 * Within this directory (`bench`), enter the development shell with `nix develop -L`.
