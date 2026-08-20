@@ -13,5 +13,5 @@ These programs are currently undocumented, apart from the brief usage descriptio
 * If you are on NixOS, please make sure you have enabled Nix Flakes.
 * If you are on a non-NixOS system, please make sure you have installed [Nix](https://nixos.org) and enabled Nix Flakes.
 * Within this directory (`bench`), enter the development shell with `nix develop -L`.
-* Run `cabal build -ffusion-plugin && cabal exec -- bench`.
+* Run `cabal build && cabal exec -- bench`.
 * View `stdout` and the `csv` files. We are currently not explaining the data in detail here, but our main conclusions are outlined in `../README.md`.

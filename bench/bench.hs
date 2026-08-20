@@ -44,7 +44,7 @@ main = do
     empty
 
   echo "Compiling Haskell programs... "
-  shells "cabal build -ffusion-plugin >> $logfile 2>&1" empty
+  shells "cabal build >> $logfile 2>&1" empty
 
   let c_executable = "./bench-archive"
 
